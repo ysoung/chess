@@ -1,405 +1,225 @@
 package gui;
 
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
-import javax.swing.GroupLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JTextField;
-import javax.swing.LayoutStyle;
 
 import logic.Board;
-import logic.Builder;
+import utility.GUIUtility;
 
-/**
- * BoardCustomMenu.java
- * 
- * GUI to handle customization of game boards.
- * 
- * @author Drew Hannay & Daniel Opdyke & John McCormick
- * 
- * CSCI 335, Wheaton College, Spring 2011 Phase 1 February 24, 2011
- */
 public class BoardCustomMenu extends JPanel
 {
-
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = 5842202724028685933L;
-
-	// Variables declaration - do not modify
-	/**
-	 * Builder used to progressively create the new game type.
-	 */
-	private Builder b;
-	/**
-	 * JLabel with instructions for the number of boards fields.
-	 */
-	private JLabel numBoardsLabel;
-	/**
-	 * JRadioButton to select the one board option
-	 */
-	private JRadioButton oneBoard;
-	/**
-	 * JRadioButton to select the two board option
-	 */
-	private JRadioButton twoBoards;
-	/**
-	 * JLabel with instructions for the dimensions fields.
-	 */
-	private JLabel dimensionsLabel;
-	/**
-	 * JLabel to indicate which field is for the x dimension.
-	 */
-	private JLabel numRowsLabel;
-	/**
-	 * JTextField to collect an integer for the x dimension.
-	 */
-	private JTextField numRows;
-	/**
-	 * JLabel to indicate which field is for the y dimension.
-	 */
-	private JLabel numColsLabel;
-	/**
-	 * JTextField to collect an integer for the y dimension.
-	 */
-	private JTextField numCols;
-	/**
-	 * JLabel to indicate whether the boards should wrap horizontally.
-	 */
-	private JLabel wraparoundLabel;
-	/**
-	 * JCheckBox to decide if boards should wrap horizontally.
-	 */
-	private JCheckBox wraparound;
-	/**
-	 * JButton to return to previous screen.
-	 */
-	private JButton backButton;
-	/**
-	 * JButton to submit board customizations and move to next screen.
-	 */
-	private JButton submitButton;
-
-	// End of variables declaration
-
-	/**
-	 * Constructor. Call initComponents to initialize the GUI.
-	 * 
-	 * @param b The builder which is creating the new game type.
-	 */
-	public BoardCustomMenu(Builder b)
+	public BoardCustomMenu(CustomSetupMenu variant, JFrame optionsFrame)
 	{
-		this.b = b;
-		initComponents();
+		m_frame = optionsFrame;
+		m_frame.setVisible(true);
+		m_frame.add(this);
+		m_frame.setVisible(true);
+		m_frame.setSize(300, 250);
+		m_frame.setLocationRelativeTo(Driver.getInstance());
+		initGUIComponents(variant);
 	}
 
-	/**
-	 * Determine if this form has been correctly filled out. Check that a number
-	 * of boards is selected, and that the dimension fields contain valid
-	 * integers.
-	 * 
-	 * @return Whether or not the form is complete.
-	 */
-	private boolean formComplete()
+	private void initGUIComponents(final CustomSetupMenu variant)
 	{
-		if (!oneBoard.isSelected() && !twoBoards.isSelected())
-		{
-			JOptionPane.showMessageDialog(null,
-					"Please select the number of boards.", "Incomplete Form",
-					JOptionPane.INFORMATION_MESSAGE);
-			return false;
-		}
-		try
-		{
-			int a = Integer.parseInt(numRows.getText());
-			int b = Integer.parseInt(numCols.getText());
-			if (a < 3 || b < 3 || a > 16 || b > 16)
-				throw new Exception();
-		} catch (Exception e)
-		{
-			JOptionPane
-					.showMessageDialog(
-							null,
-							"Enter a valid number between 3 and 16 for the dimensions of the board.",
-							"Invalid Submission",
-							JOptionPane.INFORMATION_MESSAGE);
-			return false;
-		}
-		try
-		{
-			int a = Integer.parseInt(numRows.getText());
-			int b = Integer.parseInt(numCols.getText());
-			if (twoBoards.isSelected() && (a < 3 || b < 3 || a > 10 || b > 10))
-				throw new Exception();
-		} catch (Exception e)
-		{
-			JOptionPane
-					.showMessageDialog(
-							null,
-							"Enter a valid number between 3 and 10 for the dimensions of the board.",
-							"Invalid Submission",
-							JOptionPane.INFORMATION_MESSAGE);
-			return false;
-		}
-		return true;
-	}
-
-	/**
-	 * Initialize components of the GUI Create all the GUI components, set their
-	 * specific properties and add them to the window. Also add any necessary
-	 * ActionListeners.
-	 */
-	private void initComponents()
-	{
-
 		setBorder(BorderFactory.createLoweredBevelBorder());
-
-		// Create button and add ActionListener
-		backButton = new JButton("Back");
-		backButton.setToolTipText("Press me to go back to the name setup");
-		backButton.addActionListener(new ActionListener()
-		{
-
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
-				// Return to the NewTypeMenu screen.
-				Driver.getInstance().setPanel(new NewTypeMenu());
-			}
-		});
+		setLayout(new GridBagLayout());
+		GridBagConstraints constraints = new GridBagConstraints();
+		revalidate();
+		repaint();
+		// create button and add ActionListener
+		m_cancelButton = new JButton("Cancel");
+		m_cancelButton.setToolTipText("Press me to go back to the main variant setup");
+		GUIUtility.setupVariantCancelButton(m_cancelButton, this, m_frame);
 
 		// Create JLabels and JRadioButtons.
-		numBoardsLabel = new JLabel("How many boards?");
-		oneBoard = new JRadioButton("1");
-		oneBoard.setToolTipText("Choose me for one Board");
+		m_numberOfBoardsLabel = new JLabel("How many boards?");
+		m_oneBoardButton = new JRadioButton("1");
+		GUIUtility.requestFocus(m_oneBoardButton);
+		m_oneBoardButton.setToolTipText("Choose me for one Board");
 		// Set oneBoard to be initially selected.
-		oneBoard.setSelected(true);
-		twoBoards = new JRadioButton("2");
-		twoBoards.setToolTipText("Choose me for two boards");
+		m_twoBoardsButton = new JRadioButton("2");
+		m_twoBoardsButton.setToolTipText("Choose me for two boards");
 
-		// This is important! Add the buttons to a group so only one can be
-		// selected at a time.
+		JPanel boards = new JPanel();
+		boards.add(m_oneBoardButton);
+		boards.add(m_twoBoardsButton);
+
+		Board[] board = variant.getBuilder().getBoards();
+
+		if (board.length == 1)
+			m_oneBoardButton.setSelected(true);
+		else
+			m_twoBoardsButton.setSelected(true);
+
+		// important: add the buttons to a group so only one can be selected at
+		// a time
 		ButtonGroup group = new ButtonGroup();
-		group.add(oneBoard);
-		group.add(twoBoards);
+		group.add(m_oneBoardButton);
+		group.add(m_twoBoardsButton);
 
 		// Create JLabels and JTextFields. Default size 8*8
-		dimensionsLabel = new JLabel("Dimensions?");
-		numRowsLabel = new JLabel("Rows:");
-		numRows = new JTextField("8");
-		numRows.setToolTipText("Enter the amount of rows you would like");
-		numColsLabel = new JLabel("Columns:");
-		numCols = new JTextField("8");
-		numCols.setToolTipText("Enter the amount of columns you would like");
+		m_dimensionsLabel = new JLabel("Dimensions?");
+		m_numberOfRowsLabel = new JLabel("Rows:");
+		m_numberOfRowsTextField = new JTextField(5);
+		m_numberOfRowsTextField.setText(board[0].numRows() + "");
+		m_numberOfRowsTextField.setToolTipText("Enter the amount of rows you would like");
+		m_numberOfColumnsLabel = new JLabel("Columns:");
+		m_numberOfColumnsTextField = new JTextField(5);
+		m_numberOfColumnsTextField.setText(board[0].numCols() + "");
+		m_numberOfColumnsTextField.setToolTipText("Enter the amount of columns you would like");
+
+		JPanel rowCol = new JPanel();
+		rowCol.setLayout(new GridBagLayout());
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		constraints.insets = new Insets(2, 15, 1, 5);
+		rowCol.add(m_numberOfRowsLabel, constraints);
+		constraints.gridx = 1;
+		constraints.gridy = 0;
+		constraints.fill = GridBagConstraints.BOTH;
+		rowCol.add(m_numberOfRowsTextField, constraints);
+		constraints.gridx = 0;
+		constraints.gridy = 1;
+		constraints.fill = GridBagConstraints.NONE;
+		rowCol.add(m_numberOfColumnsLabel, constraints);
+		constraints.gridx = 1;
+		constraints.gridy = 1;
+		constraints.fill = GridBagConstraints.BOTH;
+		rowCol.add(m_numberOfColumnsTextField, constraints);
 
 		// Create JLabel and JCheckBox
-		wraparoundLabel = new JLabel("<html>Should boards wrap <br />"
-				+ "around horizontally?</html>");
-		wraparound = new JCheckBox("Yes");
-		wraparound
-				.setToolTipText("Press me to have boards that wrap around on the edges");
+		m_wrapAroundLabel = new JLabel("<html>Should boards wrap <br />" + "around horizontally?</html>");
+		m_wrapAroundCheckBox = new JCheckBox("Yes");
+		m_wrapAroundCheckBox.setToolTipText("Press me to have boards that wrap around on the edges");
 
 		// Create button and add ActionListener
-		submitButton = new JButton("Next");
-		submitButton.setToolTipText("Press me to save these board settings");
-		submitButton.addActionListener(new ActionListener()
+		m_submitButton = new JButton("Save");
+		m_submitButton.setToolTipText("Press me to save these board settings");
+		m_submitButton.addActionListener(new ActionListener()
 		{
-
 			@Override
 			public void actionPerformed(ActionEvent arg0)
 			{
-				if (formComplete())
-				{// Make sure the form is complete.
-					// Create Board[] based on which radio button is selected.
-					Board[] boards = (oneBoard.isSelected()) ? new Board[1]
-							: new Board[2];
+				if (formIsValid())
+				{
+					// create Board[] based on which radio button is selected.
+					Board[] boards = (m_oneBoardButton.isSelected()) ? new Board[1] : new Board[2];
 					for (int i = 0; i < boards.length; i++)
 					{
-						// Initialize each board with the given rows and columns
+						// initialize each board with the given rows and columns
 						// and wraparound boolean.
-						boards[i] = new Board(Integer.parseInt(numRows
-								.getText()),
-								Integer.parseInt(numCols.getText()), wraparound
-										.isSelected());
+						boards[i] = new Board(Integer.parseInt(m_numberOfRowsTextField.getText()), Integer
+								.parseInt(m_numberOfColumnsTextField.getText()), m_wrapAroundCheckBox.isSelected());
 					}
-					b.setBoards(boards);// Add the Board[] to the Builder and
-										// pass it on to the next step.
-
-					Driver.getInstance().setPanel(new PieceMaker(b));
+					if (m_twoBoardsButton.isSelected())
+						variant.drawBoards(boards, true);
+					else
+						variant.drawBoards(boards, false);
+					m_holder.removeAll();
+					m_frame.setVisible(false);
 				}
 			}
 
 		});
 
-		// Layout stuff. Don't. Ask.
-		GroupLayout layout = new GroupLayout(this);
-		setLayout(layout);
-		layout.setHorizontalGroup(layout
-				.createParallelGroup(GroupLayout.Alignment.LEADING)
-				.addGroup(
-						GroupLayout.Alignment.TRAILING,
-						layout.createSequentialGroup()
-								.addGroup(
-										layout.createParallelGroup(
-												GroupLayout.Alignment.LEADING)
-												.addGroup(
-														layout.createSequentialGroup()
-																.addContainerGap()
-																.addGroup(
-																		layout.createParallelGroup(
-																				GroupLayout.Alignment.LEADING)
-																				.addGroup(
-																						layout.createSequentialGroup()
-																								.addComponent(
-																										numBoardsLabel,
-																										GroupLayout.DEFAULT_SIZE,
-																										157,
-																										Short.MAX_VALUE)
-																								.addPreferredGap(
-																										LayoutStyle.ComponentPlacement.RELATED)
-																								.addComponent(
-																										oneBoard))
-																				.addGroup(
-																						GroupLayout.Alignment.TRAILING,
-																						layout.createSequentialGroup()
-																								.addComponent(
-																										dimensionsLabel,
-																										GroupLayout.DEFAULT_SIZE,
-																										157,
-																										Short.MAX_VALUE)
-																								.addPreferredGap(
-																										LayoutStyle.ComponentPlacement.RELATED)
-																								.addGroup(
-																										layout.createParallelGroup(
-																												GroupLayout.Alignment.TRAILING)
-																												.addComponent(
-																														numColsLabel)
-																												.addComponent(
-																														numRowsLabel))))
-																.addGap(20, 20,
-																		20))
-												.addGroup(
-														layout.createSequentialGroup()
-																.addGap(105,
-																		105,
-																		105)
-																.addComponent(
-																		backButton)
-																.addComponent(
-																		submitButton))
-												.addGroup(
-														layout.createSequentialGroup()
-																.addContainerGap()
-																.addComponent(
-																		wraparoundLabel,
-																		GroupLayout.PREFERRED_SIZE,
-																		144,
-																		GroupLayout.PREFERRED_SIZE)))
-								.addGroup(
-										layout.createParallelGroup(
-												GroupLayout.Alignment.LEADING)
-												.addGroup(
-														layout.createSequentialGroup()
-																.addGroup(
-																		layout.createParallelGroup(
-																				GroupLayout.Alignment.LEADING)
-																				.addGroup(
-																						layout.createSequentialGroup()
-																								.addPreferredGap(
-																										LayoutStyle.ComponentPlacement.RELATED)
-																								.addComponent(
-																										wraparound)))
-																.addContainerGap(
-																		10,
-																		Short.MAX_VALUE))
-												.addGroup(
-														GroupLayout.Alignment.TRAILING,
-														layout.createSequentialGroup()
-																.addGroup(
-																		layout.createParallelGroup(
-																				GroupLayout.Alignment.TRAILING)
-																				.addComponent(
-																						numCols,
-																						GroupLayout.PREFERRED_SIZE,
-																						46,
-																						GroupLayout.PREFERRED_SIZE)
-																				.addGroup(
-																						layout.createParallelGroup(
-																								GroupLayout.Alignment.LEADING)
-																								.addComponent(
-																										twoBoards)
-																								.addComponent(
-																										numRows,
-																										GroupLayout.PREFERRED_SIZE,
-																										46,
-																										GroupLayout.PREFERRED_SIZE)))
-																.addGap(10, 10,
-																		10)))));
-		layout.setVerticalGroup(layout
-				.createParallelGroup(GroupLayout.Alignment.LEADING)
-				.addGroup(
-						layout.createSequentialGroup()
-								.addGap(15, 15, 15)
-								.addGroup(
-										layout.createParallelGroup(
-												GroupLayout.Alignment.BASELINE)
-												.addComponent(numBoardsLabel)
-												.addComponent(oneBoard)
-												.addComponent(twoBoards))
-								.addPreferredGap(
-										LayoutStyle.ComponentPlacement.RELATED)
-								.addGroup(
-										layout.createParallelGroup(
-												GroupLayout.Alignment.BASELINE)
-												.addComponent(dimensionsLabel)
-												.addComponent(numRowsLabel)
-												.addComponent(
-														numRows,
-														GroupLayout.PREFERRED_SIZE,
-														GroupLayout.DEFAULT_SIZE,
-														GroupLayout.PREFERRED_SIZE))
-								.addPreferredGap(
-										LayoutStyle.ComponentPlacement.RELATED)
-								.addGroup(
-										layout.createParallelGroup(
-												GroupLayout.Alignment.TRAILING)
-												.addGroup(
-														layout.createSequentialGroup()
-																.addGroup(
-																		layout.createParallelGroup(
-																				GroupLayout.Alignment.BASELINE)
-																				.addComponent(
-																						numColsLabel)
-																				.addComponent(
-																						numCols,
-																						GroupLayout.PREFERRED_SIZE,
-																						GroupLayout.DEFAULT_SIZE,
-																						GroupLayout.PREFERRED_SIZE))
-																.addGap(5, 5, 5)
-																.addComponent(
-																		wraparound)
-																.addGap(5, 5, 5))
-												.addComponent(
-														wraparoundLabel,
-														GroupLayout.PREFERRED_SIZE,
-														GroupLayout.DEFAULT_SIZE,
-														GroupLayout.PREFERRED_SIZE))
-								.addGap(20, 20, 20)
-								.addGroup(
-										layout.createParallelGroup(
-												GroupLayout.Alignment.BASELINE)
-												.addComponent(backButton)
-												.addComponent(submitButton))
-								.addContainerGap(15, Short.MAX_VALUE)));
+		JPanel buttons = new JPanel();
+		buttons.add(m_submitButton);
+		buttons.add(m_cancelButton);
+
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		add(m_numberOfBoardsLabel, constraints);
+		constraints.gridx = 1;
+		constraints.gridy = 0;
+		add(boards, constraints);
+		constraints.gridx = 0;
+		constraints.gridy = 1;
+		add(m_dimensionsLabel, constraints);
+		constraints.gridx = 1;
+		constraints.gridy = 1;
+		add(rowCol, constraints);
+		constraints.gridx = 0;
+		constraints.gridy = 2;
+		add(m_wrapAroundLabel, constraints);
+		constraints.gridx = 1;
+		constraints.gridy = 2;
+		constraints.anchor = GridBagConstraints.CENTER;
+		constraints.fill = GridBagConstraints.NONE;
+		add(m_wrapAroundCheckBox, constraints);
+		constraints.gridx = 0;
+		constraints.gridy = 3;
+		constraints.gridwidth = 2;
+		constraints.insets = new Insets(10, 0, 10, 0);
+		add(buttons, constraints);
+
+		m_frame.pack();
 	}
 
+	private boolean formIsValid()
+	{
+		if (!m_oneBoardButton.isSelected() && !m_twoBoardsButton.isSelected())
+		{
+			JOptionPane.showMessageDialog(Driver.getInstance(), "Please select the number of boards.", "Incomplete Form", JOptionPane.PLAIN_MESSAGE);
+			return false;
+		}
+		try
+		{
+			int numberOfRows = Integer.parseInt(m_numberOfRowsTextField.getText());
+			int numberOfColumns = Integer.parseInt(m_numberOfColumnsTextField.getText());
+			if (numberOfRows < 3 || numberOfColumns < 3 || numberOfRows > 16 || numberOfColumns > 16)
+				throw new Exception();
+		}
+		catch (Exception e)
+		{
+			JOptionPane.showMessageDialog(Driver.getInstance(), "Enter a valid number between 3 and 16 for the dimensions of the board.",
+					"Invalid Submission", JOptionPane.PLAIN_MESSAGE);
+			return false;
+		}
+		try
+		{
+			int numberOfRows = Integer.parseInt(m_numberOfRowsTextField.getText());
+			int numberOfColumns = Integer.parseInt(m_numberOfColumnsTextField.getText());
+			if (m_twoBoardsButton.isSelected()
+					&& (numberOfRows < 3 || numberOfColumns < 3 || numberOfRows > 10 || numberOfColumns > 10))
+				throw new Exception();
+		}
+		catch (Exception e)
+		{
+			JOptionPane.showMessageDialog(Driver.getInstance(), "Enter a valid number between 3 and 10 for the dimensions of the board.",
+					"Invalid Submission", JOptionPane.PLAIN_MESSAGE);
+			return false;
+		}
+		return true;
+	}
+
+	private static final long serialVersionUID = 5842202724028685933L;
+
+	private JLabel m_numberOfBoardsLabel;
+	private JRadioButton m_oneBoardButton;
+	private JRadioButton m_twoBoardsButton;
+	private JLabel m_dimensionsLabel;
+	private JLabel m_numberOfRowsLabel;
+	private JTextField m_numberOfRowsTextField;
+	private JLabel m_numberOfColumnsLabel;
+	private JTextField m_numberOfColumnsTextField;
+	private JLabel m_wrapAroundLabel;
+	private JCheckBox m_wrapAroundCheckBox;
+	private JButton m_cancelButton;
+	private JButton m_submitButton;
+	private JFrame m_frame;
+	private BoardCustomMenu m_holder = this;
 }

@@ -4,7 +4,6 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.TextField;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowEvent;
@@ -13,11 +12,11 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.InetAddress;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -34,392 +33,317 @@ import javax.tools.ToolProvider;
 
 import logic.Builder;
 import logic.Game;
+import logic.Result;
 import net.NetworkClient;
 import net.NetworkServer;
-import timer.BronsteinDelay;
+import timer.BronsteinDelayTimer;
 import timer.ChessTimer;
-import timer.Fischer;
-import timer.HourGlass;
+import timer.FischerTimer;
+import timer.HourGlassTimer;
 import timer.NoTimer;
-import timer.SimpleDelay;
-import timer.Word;
+import timer.SimpleDelayTimer;
+import timer.WordTimer;
+import utility.FileUtility;
+import utility.GUIUtility;
+import utility.RunnableOfT;
 import ai.AIAdapter;
 import ai.AIPlugin;
 
-/**
- * NewGameMenu.java
- * 
- * GUI to initiate the a new game.
- * 
- * @author Drew Hannay & Daniel Opdyke & John McCormick
- * 
- * CSCI 335, Wheaton College, Spring 2011 Phase 1 February 24, 2011
- */
+import com.google.common.collect.Lists;
+
 public class NewGameMenu extends JPanel
 {
-
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = -6371389704966320508L;
-
-	// Variables declaration - do not modify
-	/**
-	 * JButton to initiate a new AI game.
-	 */
-	private JButton AIPlay;
-	/**
-	 * JButton to initiate a new Human versus Human game.
-	 */
-	private JButton humanPlay;
-	/**
-	 * JButton to initiate a new network game.
-	 */
-	private JButton networkPlay;
-	/**
-	 * JButton to return to previous screen.
-	 */
-	private JButton backButton;
-	/**
-	 * The host of the game for playing
-	 */
-	private String host = "";
-	/**
-	 * The boolean for whether a user wishes to stay in the program but cancel
-	 * out of the current box.
-	 */
-	public static boolean cancelled = false;
-
-	/**
-	 * Represents whether an option has been clicked; reset once the game
-	 * begins. This is to prevent multiple instances of a new game from being
-	 * created upon accidental double clicks.
-	 */
-	private boolean clicked;
-
-	// End of variables declaration
-
-	/**
-	 * Constructor Call initComponents to initialize the GUI.
-	 */
 	public NewGameMenu()
 	{
-		initComponents();
+		m_returnToMainButton = new JButton("Return to Main Menu");
+		initGUIComponents();
 	}
 
-	/**
-	 * Initialize components of the GUI Create all the GUI components, set their
-	 * specific properties and add them to the window. Also add any necessary
-	 * ActionListeners.
-	 */
-	public void initComponents()
+	private void initGUIComponents()
 	{
-
 		setLayout(new GridBagLayout());
-		GridBagConstraints c = new GridBagConstraints();
+		GridBagConstraints constraints = new GridBagConstraints();
 
-		// Create button and add ActionListener
-		humanPlay = new JButton("Human Play");
-		humanPlay.addActionListener(new ActionListener()
+		m_humanPlayButton = new JButton("Human Play");
+		m_humanPlayButton.addActionListener(new ActionListener()
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent arg0)
+			public void actionPerformed(ActionEvent event)
 			{
-				if (!clicked)
+				if (!m_isWorking)
 				{
-					clicked = true;
-					setupPopup(false);
+					m_isWorking = true;
+					setUpNewGamePopup(false);
 				}
 			}
 		});
 
-		// Create button and add ActionListener
-		networkPlay = new JButton("Network Play");
-		networkPlay.addActionListener(new ActionListener()
+		m_networkPlayButton = new JButton("Network Play");
+		m_networkPlayButton.addActionListener(new ActionListener()
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent arg0)
+			public void actionPerformed(ActionEvent event)
 			{
-				final JFrame pop = new JFrame("New Game");
-				pop.setLayout(new FlowLayout());
-				pop.setSize(350, 150);
-				pop.setResizable(false);
-				pop.setLocationRelativeTo(null);
-				JPanel options = new JPanel();
-				final JLabel label = new JLabel(
-						"Would you like to host a game or connect to one?");
-				final JButton client = new JButton("Connect");
-				client.addActionListener(new ActionListener()
+				final JFrame popupFrame = new JFrame("New Game");
+				popupFrame.setLayout(new FlowLayout());
+				popupFrame.setSize(350, 150);
+				popupFrame.setResizable(false);
+				popupFrame.setLocationRelativeTo(Driver.getInstance());
+
+				JPanel optionsPanel = new JPanel();
+				final JLabel hostOrConnectLabel = new JLabel("Would you like to host a game or connect to one?");
+				final JButton clientButton = new JButton("Connect");
+				clientButton.addActionListener(new ActionListener()
 				{
 					@Override
-					public void actionPerformed(ActionEvent arg0)
+					public void actionPerformed(ActionEvent event)
 					{
-						final JFrame popped = new JFrame("New Game");
-						popped.setLayout(new GridBagLayout());
-						popped.setSize(370, 150);
-						popped.setResizable(false);
-						popped.setLocationRelativeTo(null);
-						GridBagConstraints c = new GridBagConstraints();
+						final JFrame poppedFrame = new JFrame("New Game");
+						poppedFrame.setLayout(new GridBagLayout());
+						poppedFrame.setSize(370, 150);
+						poppedFrame.setResizable(false);
+						poppedFrame.setLocationRelativeTo(Driver.getInstance());
+						GridBagConstraints netGameConstraints = new GridBagConstraints();
 
-						final JLabel hoster = new JLabel(
-								"Which computer would you like to connect to?");
-						final JTextField computer = new JTextField("", 2);
+						final JLabel connectToLabel = new JLabel("Which computer would you like to connect to?");
+						final JTextField connectToField = new JTextField("", 2);
 
-						final JButton save = new JButton("Next");
-						save.addActionListener(new ActionListener()
+						final JButton nextButton = new JButton("Next");
+						nextButton.addActionListener(new ActionListener()
 						{
 							@Override
-							public void actionPerformed(ActionEvent e)
+							public void actionPerformed(ActionEvent event)
 							{
-								if (computer.getText().equals(""))
+								if (connectToField.getText().equals(""))
 								{
-									JOptionPane.showMessageDialog(null,
-											"Please enter a number");
+									JOptionPane.showMessageDialog(Driver.getInstance(), "Please enter a number", "Number Needed",
+											JOptionPane.PLAIN_MESSAGE);
 									return;
-								} else if (computer.getText().length() < 2)
+								}
+								else if (connectToField.getText().length() < 2)
 								{
 									try
 									{
-										int hostNumber = Integer
-												.parseInt(computer.getText());
+										int hostNumber = Integer.parseInt(connectToField.getText());
 										if (hostNumber > 25 || hostNumber < 1)
 											throw new Exception();
-										host = "cslab0" + hostNumber;
-									} catch (Exception ne)
-									{
-										JOptionPane
-												.showMessageDialog(null,
-														"Please enter a number between 1-25 in the box");
-										return;
+										m_hostName = "cslab0" + hostNumber;
 									}
-								} else
-								{
-									try
+									catch (Exception e)
 									{
-										int hostNumber = Integer
-												.parseInt(computer.getText());
-										if (hostNumber > 25 || hostNumber < 1)
-											throw new Exception();
-										host = "cslab" + hostNumber;
-									} catch (Exception ne)
-									{
-										JOptionPane
-												.showMessageDialog(null,
-														"Please enter a number between 1-25 in the box");
+										JOptionPane.showMessageDialog(Driver.getInstance(), "Please enter a number between 1-25 in the box",
+												"Number Needed", JOptionPane.PLAIN_MESSAGE);
 										return;
 									}
 								}
-								NewGameMenu.cancelled = false;
-								Thread client;
+								else
+								{
+									try
+									{
+										int hostNumber = Integer.parseInt(connectToField.getText());
+										if (hostNumber > 25 || hostNumber < 1)
+											throw new Exception();
+										m_hostName = "cslab" + hostNumber;
+									}
+									catch (Exception e)
+									{
+										JOptionPane.showMessageDialog(Driver.getInstance(), "Please enter a number between 1-25 in the box",
+												"Number Needed", JOptionPane.PLAIN_MESSAGE);
+										return;
+									}
+								}
+								NewGameMenu.m_isCancelled = false;
 								try
 								{
-									client = new Thread(new Runnable()
+									Thread clientThread = new Thread(new Runnable()
 									{
 										@Override
 										public void run()
 										{
 											try
 											{
-												new NetworkClient().join(host);
-											} catch (Exception e)
+												new NetworkClient().join(m_hostName);
+											}
+											catch (Exception e)
 											{
 												e.printStackTrace();
 											}
 										}
 									});
-									client.start();
-									Driver.getInstance().setPanel(
-											new NetLoading(client));
-								} catch (Exception e1)
+									clientThread.start();
+									Driver.getInstance().setPanel(new NetLoading());
+								}
+								catch (Exception e)
 								{
-									e1.printStackTrace();
+									e.printStackTrace();
 								}
 
-								popped.dispose();
-								pop.dispose();
+								poppedFrame.dispose();
+								popupFrame.dispose();
 							}
 						});
 
-						final JButton back = new JButton("Back");
-						back.addActionListener(new ActionListener()
-						{
-							@Override
-							public void actionPerformed(ActionEvent arg0)
-							{
-								popped.dispose();
-							}
-						});
+						final JButton cancelButton = new JButton("Cancel");
+						GUIUtility.setupCancelButton(cancelButton, popupFrame);
 
-						JPanel everything = new JPanel();
-						everything.setLayout(new GridBagLayout());
+						JPanel topLevelPanel = new JPanel();
+						topLevelPanel.setLayout(new GridBagLayout());
 
-						c.gridx = 0;
-						c.gridy = 0;
-						c.gridwidth = 2;
-						c.insets = new Insets(3, 3, 3, 3);
-						popped.add(hoster, c);
-						c.gridx = 0;
-						c.gridy = 1;
-						c.gridwidth = 1;
-						everything.add(new JLabel("cslab: "), c);
-						c.gridx = 1;
-						c.gridy = 1;
-						c.gridwidth = 1;
-						everything.add(computer, c);
-						c.gridx = 0;
-						c.gridy = 2;
-						c.gridwidth = 1;
-						everything.add(back, c);
-						c.gridx = 1;
-						c.gridy = 2;
-						c.gridwidth = 1;
-						everything.add(save, c);
+						netGameConstraints.gridx = 0;
+						netGameConstraints.gridy = 0;
+						netGameConstraints.gridwidth = 2;
+						netGameConstraints.insets = new Insets(3, 3, 3, 3);
+						poppedFrame.add(connectToLabel, netGameConstraints);
+						netGameConstraints.gridx = 0;
+						netGameConstraints.gridy = 1;
+						netGameConstraints.gridwidth = 1;
+						topLevelPanel.add(new JLabel("cslab: "), netGameConstraints);
+						netGameConstraints.gridx = 1;
+						netGameConstraints.gridy = 1;
+						netGameConstraints.gridwidth = 1;
+						topLevelPanel.add(connectToField, netGameConstraints);
+						netGameConstraints.gridx = 0;
+						netGameConstraints.gridy = 2;
+						netGameConstraints.gridwidth = 1;
+						topLevelPanel.add(nextButton, netGameConstraints);
+						netGameConstraints.gridx = 1;
+						netGameConstraints.gridy = 2;
+						netGameConstraints.gridwidth = 1;
+						topLevelPanel.add(cancelButton, netGameConstraints);
 
-						c.gridx = 0;
-						c.gridy = 1;
-						c.gridwidth = 2;
-						popped.add(everything, c);
-						popped.setVisible(true);
+						netGameConstraints.gridx = 0;
+						netGameConstraints.gridy = 1;
+						netGameConstraints.gridwidth = 2;
+						poppedFrame.add(topLevelPanel, netGameConstraints);
+						poppedFrame.setVisible(true);
 					}
 				});
-				final JButton host = new JButton("Host");
-				host.addActionListener(new ActionListener()
+
+				final JButton hostButton = new JButton("Host");
+				hostButton.addActionListener(new ActionListener()
 				{
 					@Override
-					public void actionPerformed(ActionEvent arg0)
+					public void actionPerformed(ActionEvent event)
 					{
-						setupPopup(true);
-						pop.dispose();
+						setUpNewGamePopup(true);
+						popupFrame.dispose();
 					}
 				});
-				options.add(label);
-				pop.add(options);
-				pop.add(host);
-				pop.add(client);
+				optionsPanel.add(hostOrConnectLabel);
+				popupFrame.add(optionsPanel);
+				popupFrame.add(hostButton);
+				popupFrame.add(clientButton);
 
-				pop.setVisible(true);
+				popupFrame.setVisible(true);
 			}
 		});
 
-		// Create button and add ActionListener
-		AIPlay = new JButton("AI Play");
-		AIPlay.addActionListener(new ActionListener()
+		m_aiPlayButton = new JButton("AI Play");
+		m_aiPlayButton.addActionListener(new ActionListener()
 		{
 			@Override
-			public void actionPerformed(ActionEvent e)
+			public void actionPerformed(ActionEvent event)
 			{
-				final JFrame popped = new JFrame("New Game");
-				popped.setLayout(new GridBagLayout());
-				popped.setSize(225, 150);
-				popped.setResizable(false);
-				popped.setLocationRelativeTo(null);
-				GridBagConstraints c = new GridBagConstraints();
+				final JFrame poppedFrame = new JFrame("New Game");
+				poppedFrame.setLayout(new GridBagLayout());
+				poppedFrame.setSize(225, 200);
+				poppedFrame.setResizable(false);
+				poppedFrame.setLocationRelativeTo(Driver.getInstance());
+				GridBagConstraints constraints = new GridBagConstraints();
 
-				final JComboBox dropdown = new JComboBox(Builder.getArray());
-				c.gridx = 0;
-				c.gridy = 0;
-				popped.add(new JLabel("Type: "), c);
-				c.gridx = 1;
-				c.gridy = 0;
-				c.insets = new Insets(3, 0, 3, 0);
-				popped.add(dropdown, c);
-				c.gridx = 0;
-				c.gridy = 1;
-				popped.add(new JLabel("AI: "), c);
+				final JComboBox dropdown = new JComboBox(Builder.getVariantFileArray());
+				constraints.gridx = 0;
+				constraints.gridy = 0;
+				poppedFrame.add(new JLabel("Game Type: "), constraints);
+				constraints.gridx = 1;
+				constraints.gridy = 0;
+				constraints.insets = new Insets(3, 0, 3, 0);
+				poppedFrame.add(dropdown, constraints);
+				constraints.gridx = 0;
+				constraints.gridy = 1;
+				poppedFrame.add(new JLabel("AI: "), constraints);
 
-				File dir = new File("AI");
-				dir.mkdir();
-				String[] allFiles = dir.list();
-				List<String> tempFiles = new ArrayList<String>();
-				for (String st : allFiles)
-					if (st.endsWith(".java"))
-						tempFiles.add(st);
-				String[] files = new String[tempFiles.size()];
-				tempFiles.toArray(files);
-
-				if (files.length == 0)
+				final JComboBox aiComboBox = new JComboBox(getAIFiles());
+				constraints.gridx = 1;
+				constraints.gridy = 1;
+				constraints.fill = GridBagConstraints.HORIZONTAL;
+				poppedFrame.add(aiComboBox, constraints);
+				
+				if (getAIFiles().length == 0)
 				{
-					JOptionPane
-							.showMessageDialog(
-									null,
-									"There are no AI files to use.\nPlease insert your AI java files in the AI directory.",
-									"No AI files", JOptionPane.ERROR_MESSAGE);
-					return;
+					switch (JOptionPane.showConfirmDialog(Driver.getInstance(),
+							"There are no AI files installed. Would you like to install one?", "Install AI Files?",
+							JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE))
+					{
+					case JOptionPane.YES_OPTION:
+						GUIUtility.installAIFiles(aiComboBox, NewGameMenu.this, getAIFiles());
+						break;
+					case JOptionPane.NO_OPTION:
+						return;
+					}
 				}
-				final JComboBox ai = new JComboBox(files);
-				c.gridx = 1;
-				c.gridy = 1;
-				c.fill = GridBagConstraints.HORIZONTAL;
-				popped.add(ai, c);
 
-				JButton next = new JButton("Next");
-				next.addActionListener(new ActionListener()
+				JButton addAIFileButton = new JButton("Install New AI");
+				addAIFileButton.addActionListener(new ActionListener()
 				{
 					@Override
-					public void actionPerformed(ActionEvent arg0)
+					public void actionPerformed(ActionEvent event)
 					{
-						final String choice = (String) ai.getSelectedItem();
-						File file = new File("AI/" + choice);
-						if (ai.getSelectedItem() == null)
+						GUIUtility.installAIFiles(aiComboBox, NewGameMenu.this, getAIFiles());
+					}
+				});
+
+				JButton nextButton = new JButton("Next");
+				nextButton.addActionListener(new ActionListener()
+				{
+					@Override
+					public void actionPerformed(ActionEvent event)
+					{
+						final String aiFileName = (String) aiComboBox.getSelectedItem();
+						File aiFile = FileUtility.getAIFile(aiFileName);
+						if (aiComboBox.getSelectedItem() == null)
 						{
-							JOptionPane.showMessageDialog(null,
-									"You have not selected an AI file",
-									"No AI file", JOptionPane.ERROR_MESSAGE);
+							JOptionPane.showMessageDialog(Driver.getInstance(), "You have not selected an AI file", "No AI file",
+									JOptionPane.PLAIN_MESSAGE);
 							return;
 						}
-						Game toPlay = Builder.newGame((String) dropdown
-								.getSelectedItem());
+						Game gameToPlay = Builder.newGame((String) dropdown.getSelectedItem());
 
-						JavaCompiler compiler = ToolProvider
-								.getSystemJavaCompiler();
-						StandardJavaFileManager fileManager = compiler
-								.getStandardFileManager(null,
-										Locale.getDefault(), null);
+						JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+						StandardJavaFileManager fileManager = compiler.getStandardFileManager(null, Locale.getDefault(), null);
 
 						String[] compileOptions = new String[] { "-d", "bin" };
-						Iterable<String> compilationOptions = Arrays
-								.asList(compileOptions);
+						Iterable<String> compilationOptions = Arrays.asList(compileOptions);
 
-						// prepare the source file to compile
-						List<File> sourceFileList = new ArrayList<File>();
-						sourceFileList.add(file);
-						Iterable<? extends JavaFileObject> compilationUnits = fileManager
-								.getJavaFileObjectsFromFiles(sourceFileList);
-						CompilationTask task = compiler.getTask(null,
-								fileManager, null, compilationOptions, null,
-								compilationUnits);
+						List<File> sourceFileList = Lists.newArrayList();
+						sourceFileList.add(aiFile);
+						Iterable<? extends JavaFileObject> compilationUnits = fileManager.getJavaFileObjectsFromFiles(sourceFileList);
+						CompilationTask task = compiler.getTask(null, fileManager, null, compilationOptions, null, compilationUnits);
 
-						boolean result = task.call();
-						if (!result)
+						if (!task.call())
 						{
-							JOptionPane
-									.showMessageDialog(
-											null,
-											"Compilation failed\n"
-													+ "Make sure your class implements the AIPlugin interface\n"
-													+ "Make sure your class includes the following imports:\n"
-													+ "import ai.*;\n"
-													+ "import ai.AIAdapter.*;\n");
+							JOptionPane.showMessageDialog(Driver.getInstance(), "Compilation failed\n"
+									+ "Make sure your class implements the AIPlugin interface\n"
+									+ "Make sure your class includes the following imports:\n" + "import ai.*;\n"
+									+ "import ai.AIAdapter.*;\n", "Compilation Failure", JOptionPane.PLAIN_MESSAGE);
 							return;
 						}
 						try
 						{
 							fileManager.close();
-						} catch (IOException e)
+						}
+						catch (IOException e)
 						{
 						}
 
-						final AIPlugin plugin;
-						final AIAdapter ai = new AIAdapter(toPlay);
+						final AIPlugin aiPlugin;
+						final AIAdapter aiAdapter = new AIAdapter(gameToPlay);
 						try
 						{
-							ClassLoader c = ClassLoader.getSystemClassLoader();
-							Class<?> klazz = c.loadClass(choice.substring(0,
-									choice.indexOf(".java")));
-							Constructor<?> construct = klazz.getConstructor();
-							plugin = (AIPlugin) construct.newInstance();
+							ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+							Class<?> klazz = classLoader.loadClass(aiFileName.substring(0, aiFileName.indexOf(".java")));
+							Constructor<?> constructor = klazz.getConstructor();
+							aiPlugin = (AIPlugin) constructor.newInstance();
 
 							Thread aiThread;
 							aiThread = new Thread(new Runnable()
@@ -429,343 +353,366 @@ public class NewGameMenu extends JPanel
 								{
 									try
 									{
-										ai.runGame(plugin);
-									} catch (Exception e)
+										aiAdapter.runGame(aiPlugin);
+									}
+									catch (Exception e)
 									{
 										e.printStackTrace();
 									}
 								}
 							});
 							aiThread.start();
-						} catch (Exception e1)
+						}
+						catch (Exception e)
 						{
-							e1.printStackTrace();
+							e.printStackTrace();
 						}
 
-						// System.out.println(toPlay.equals(ai.getGame()));
 						try
 						{
-							PlayNetGame png = new PlayNetGame(toPlay, false,
-									false);
-							png.setAIGame(true);
-							Driver.getInstance().setPanel(png);
-						} catch (Exception e)
+							PlayNetGame playNetGame = new PlayNetGame(gameToPlay, false, false);
+							playNetGame.setIsAIGame(true);
+							Driver.getInstance().setPanel(playNetGame);
+						}
+						catch (Exception e)
 						{
 							return;
 						}
-						popped.dispose();
+						poppedFrame.dispose();
 					}
 				});
 
-				JButton back = new JButton("Back");
-				back.addActionListener(new ActionListener()
-				{
-					@Override
-					public void actionPerformed(ActionEvent e)
-					{
-						popped.dispose();
-					}
-				});
+				JButton cancelButton = new JButton("Cancel");
+				GUIUtility.setupCancelButton(cancelButton, poppedFrame);
 
-				JPanel buttons = new JPanel();
-				buttons.setLayout(new FlowLayout());
-				buttons.add(back);
-				buttons.add(next);
+				JPanel buttonPanel = new JPanel();
+				buttonPanel.setLayout(new FlowLayout());
+				buttonPanel.add(nextButton);
+				buttonPanel.add(cancelButton);
 
-				c.gridx = 0;
-				c.gridy = 2;
-				c.gridwidth = 2;
-				popped.add(buttons, c);
+				constraints.gridx = 0;
+				constraints.gridy = 2;
+				constraints.gridwidth = 2;
+				constraints.insets = new Insets(5, 0, 5, 0);
+				poppedFrame.add(addAIFileButton, constraints);
 
-				popped.setVisible(true);
+				constraints.gridx = 0;
+				constraints.gridy = 3;
+				poppedFrame.add(buttonPanel, constraints);
+
+				poppedFrame.setVisible(true);
 			}
 		});
 
-		// Create button and add ActionListener
-		backButton = new JButton("Back");
-		backButton.addActionListener(new ActionListener()
+		m_returnToMainButton.setToolTipText("Press me to go back to the Main Menu");
+		m_returnToMainButton.addActionListener(new ActionListener()
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent e)
+			public void actionPerformed(ActionEvent event)
 			{
-				// Return to the main screen.
-				Driver.getInstance().helpMenu.setText("Help");
-				Driver.getInstance().gamePlayHelp.setVisible(false);
-				Driver.getInstance().revertPanel();
+				Driver.getInstance().revertToMainPanel();
 			}
 		});
+
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.setBorder(BorderFactory.createLoweredBevelBorder());
+		buttonPanel.setLayout(new GridBagLayout());
+		constraints.gridy = 1;
+		constraints.ipadx = 7;
+		constraints.insets = new Insets(5, 5, 0, 5);
+		buttonPanel.add(m_humanPlayButton, constraints);
+		constraints.gridy = 2;
+		constraints.ipadx = 0;
+		constraints.insets = new Insets(2, 5, 0, 5);
+		buttonPanel.add(m_networkPlayButton, constraints);
+		constraints.gridy = 3;
+		constraints.ipadx = 28;
+		constraints.insets = new Insets(2, 5, 5, 5);
+		buttonPanel.add(m_aiPlayButton, constraints);
 
 		try
 		{
 			if (InetAddress.getLocalHost().getHostName().contains("cslab"))
 			{
-				c.gridx = 0;
-				c.gridy = 0;
-				c.fill = GridBagConstraints.HORIZONTAL;
-				c.insets = new Insets(5, 5, 0, 0);
-				add(humanPlay, c);
-				c.gridx = 1;
-				c.gridy = 0;
-				c.fill = GridBagConstraints.HORIZONTAL;
-				c.insets = new Insets(5, 5, 0, 5);
-				add(networkPlay, c);
-				c.gridx = 0;
-				c.gridy = 1;
-				c.gridwidth = 2;
-				c.insets = new Insets(0, 5, 20, 5);
-				c.fill = GridBagConstraints.HORIZONTAL;
-				add(AIPlay, c);
-				c.gridx = 0;
-				c.gridy = 2;
-				add(backButton, c);
-			} else
-			{
-				// Layout stuff. Make it better later.
-				c.gridx = 0;
-				c.gridy = 0;
-				c.fill = GridBagConstraints.HORIZONTAL;
-				c.insets = new Insets(5, 5, 0, 5);
-				add(humanPlay, c);
-				c.gridx = 0;
-				c.gridy = 1;
-				c.insets = new Insets(0, 5, 20, 5);
-				c.fill = GridBagConstraints.HORIZONTAL;
-				add(AIPlay, c);
-				c.gridx = 0;
-				c.gridy = 2;
-				add(backButton, c);
+				constraints.gridy = 0;
+				constraints.ipadx = 0;
+				constraints.insets = new Insets(5, 50, 5, 50);
+				constraints.anchor = GridBagConstraints.CENTER;
+				add(new JLabel("How would you like to play?"), constraints);
+				constraints.gridy = 1;
+				add(buttonPanel, constraints);
+				constraints.gridy = 2;
+				add(m_returnToMainButton, constraints);
 			}
-		} catch (Exception e)
-		{
+			else
+			{
+				constraints.gridy = 0;
+				constraints.ipadx = 0;
+				constraints.insets = new Insets(5, 50, 5, 50);
+				constraints.anchor = GridBagConstraints.CENTER;
+				add(new JLabel("How would you like to play?"), constraints);
+				constraints.gridy = 1;
+				constraints.ipadx = 0;
+				add(buttonPanel, constraints);
+				constraints.gridy = 2;
+				add(m_returnToMainButton, constraints);
 
+				m_networkPlayButton.setVisible(false);
+			}
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
 		}
 
 	}
 
-	/**
-	 * This is the method to open the pop up to create a new game.
-	 * 
-	 * @param isNetwork boolean to see if this is a network game or not
-	 */
-	public void setupPopup(final boolean isNetwork)
+	private String[] getAIFiles()
 	{
-		clicked = true;
-		final JFrame popup = new JFrame("New Game");
-		popup.setLayout(new GridBagLayout());
-		popup.setSize(325, 225);
-		popup.setResizable(false);
-		popup.setLocationRelativeTo(null);// This line makes the window show up
-											// in the center of the user's
-											// screen, regardless of resolution.
-		GridBagConstraints c = new GridBagConstraints();
+		String[] allFiles = FileUtility.getAIFileList();
+		allFiles = FileUtility.getAIFileList();
 
-		// Make a JComboBox drop down filled with the names of all the saved
-		// game types.
-		String[] gametypes = Builder.getArray();
-		if (isNetwork)
+		List<String> tempFiles = Lists.newArrayList();
+
+		for (String fileName : allFiles)
 		{
-			ArrayList<String> filtered = new ArrayList<String>();
-			for (String s : gametypes)
-			{
-				Game temp = Builder.newGame(s);
-				if (temp.getWhiteRules().networkable()
-						&& temp.getBlackRules().networkable())
-					filtered.add(s);
-			}
-			gametypes = new String[filtered.size()];
-			int i = 0;
-			for (String s : filtered)
-				gametypes[i++] = s;
+			if (fileName.endsWith(".java"))
+				tempFiles.add(fileName);
 		}
-		final JComboBox dropdown = new JComboBox(gametypes);
+
+		return tempFiles.toArray(new String[tempFiles.size()]);
+	}
+
+	private void setUpNewGamePopup(final boolean isNetworkPlay)
+	{
+		m_isWorking = true;
+		final JFrame popupFrame = new JFrame("New Game");
+		popupFrame.setLayout(new GridBagLayout());
+		popupFrame.setSize(325, 225);
+		popupFrame.setResizable(false);
+		// make the window show up in the center of the screen regardless of
+		// resolution
+		popupFrame.setLocationRelativeTo(Driver.getInstance());
+		GridBagConstraints constraints = new GridBagConstraints();
+
+		String[] variantTypes = Builder.getVariantFileArray();
+		if (isNetworkPlay)
+		{
+			List<String> filteredList = Lists.newArrayList();
+			for (String variant : variantTypes)
+			{
+				Game game = Builder.newGame(variant);
+				if (game.getWhiteRules().rulesAreNetworkable() && game.getBlackRules().rulesAreNetworkable())
+					filteredList.add(variant);
+			}
+			variantTypes = new String[filteredList.size()];
+			int i = 0;
+			for (String variantName : filteredList)
+				variantTypes[i++] = variantName;
+		}
+		final JComboBox dropdown = new JComboBox(variantTypes);
 
 		// TODO restrict game types here.
 
-		c.gridx = 0;
-		c.gridy = 0;
-		c.anchor = GridBagConstraints.WEST;
-		popup.add(new JLabel("Type: "), c);
-		c.gridx = 1;
-		c.gridy = 0;
-		c.fill = GridBagConstraints.HORIZONTAL;
-		popup.add(dropdown, c);
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		constraints.anchor = GridBagConstraints.WEST;
+		popupFrame.add(new JLabel("Type: "), constraints);
+		constraints.gridx = 1;
+		constraints.gridy = 0;
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		popupFrame.add(dropdown, constraints);
 
-		// Create button and add ActionListener
-		final JButton done = new JButton("Start");
-		String[] timerNames = { "No timer", "Bronstein Delay", "Fischer",
-				"Fischer After", "Hour Glass", "Simple Delay", "Word" };
-		final JComboBox timers = new JComboBox(timerNames);
-		final JLabel totalTimeText = new JLabel("Total Time (sec): ");
-		totalTimeText.setVisible(false);
-		final TextField totalTime = new TextField("120", 3);
-		totalTime.setVisible(false);
-		final JLabel increaseText = new JLabel("Increment/delay (sec): ");
-		increaseText.setVisible(false);
-		final TextField increase = new TextField("10", 3);
-		increase.setVisible(false);
+		final JButton doneButton = new JButton("Start");
+		final JComboBox timerComboBox = new JComboBox(TIMER_NAMES);
 
-		timers.addActionListener(new ActionListener()
+		final JLabel totalTimeLabel = new JLabel("Total Time (sec): ");
+		totalTimeLabel.setVisible(false);
+		final JTextField totalTimeField = new JTextField("120", 3);
+		totalTimeField.setVisible(false);
+
+		final JLabel increaseLabel = new JLabel("Increment/delay (sec): ");
+		increaseLabel.setVisible(false);
+		final JTextField increaseField = new JTextField("10", 3);
+		increaseField.setVisible(false);
+
+		timerComboBox.addActionListener(new ActionListener()
 		{
 			@Override
-			public void actionPerformed(ActionEvent arg0)
+			public void actionPerformed(ActionEvent event)
 			{
-				String timerName = (String) timers.getSelectedItem();
-				if (timerName.equals("No timer") == false)
+				String timerName = (String) timerComboBox.getSelectedItem();
+				if (!timerName.equals("No timer"))
 				{
-					totalTimeText.setVisible(true);
-					totalTime.setVisible(true);
-					increaseText.setVisible(true);
-					increase.setVisible(true);
-				} else
+					totalTimeLabel.setVisible(true);
+					totalTimeField.setVisible(true);
+					increaseLabel.setVisible(true);
+					increaseField.setVisible(true);
+				}
+				else
 				{
-					totalTimeText.setVisible(false);
-					totalTime.setVisible(false);
-					increaseText.setVisible(false);
-					increase.setVisible(false);
+					totalTimeLabel.setVisible(false);
+					totalTimeField.setVisible(false);
+					increaseLabel.setVisible(false);
+					increaseField.setVisible(false);
 				}
 			}
 		});
 
-		c.gridx = 0;
-		c.gridy = 1;
-		popup.add(new JLabel("Timer: "), c);
-		c.gridx = 1;
-		c.gridy = 1;
-		c.fill = GridBagConstraints.HORIZONTAL;
-		popup.add(timers, c);
-		c.gridx = 0;
-		c.gridy = 2;
-		popup.add(totalTimeText, c);
-		c.gridx = 1;
-		c.gridy = 2;
-		popup.add(totalTime, c);
-		c.gridx = 0;
-		c.gridy = 3;
-		c.anchor = GridBagConstraints.CENTER;
-		popup.add(increaseText, c);
-		c.gridx = 1;
-		c.gridy = 3;
-		popup.add(increase, c);
-		popup.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-		popup.addWindowListener(new WindowListener()
+		constraints.gridx = 0;
+		constraints.gridy = 1;
+		popupFrame.add(new JLabel("Timer: "), constraints);
+		constraints.gridx = 1;
+		constraints.gridy = 1;
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		popupFrame.add(timerComboBox, constraints);
+		constraints.gridx = 0;
+		constraints.gridy = 2;
+		popupFrame.add(totalTimeLabel, constraints);
+		constraints.gridx = 1;
+		constraints.gridy = 2;
+		popupFrame.add(totalTimeField, constraints);
+		constraints.gridx = 0;
+		constraints.gridy = 3;
+		constraints.anchor = GridBagConstraints.CENTER;
+		popupFrame.add(increaseLabel, constraints);
+		constraints.gridx = 1;
+		constraints.gridy = 3;
+		popupFrame.add(increaseField, constraints);
+		popupFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		popupFrame.addWindowListener(new WindowListener()
 		{
 			@Override
-			public void windowActivated(WindowEvent arg0)
+			public void windowActivated(WindowEvent event)
 			{
 			}
 
 			@Override
-			public void windowClosed(WindowEvent arg0)
+			public void windowClosed(WindowEvent event)
 			{
 			}
 
 			@Override
-			public void windowClosing(WindowEvent arg0)
+			public void windowClosing(WindowEvent event)
 			{
-				clicked = false;
-				popup.setVisible(false);
-				popup.dispose();
+				m_isWorking = false;
+				popupFrame.setVisible(false);
+				popupFrame.dispose();
 			}
 
 			@Override
-			public void windowDeactivated(WindowEvent arg0)
-			{
-			}
-
-			@Override
-			public void windowDeiconified(WindowEvent arg0)
+			public void windowDeactivated(WindowEvent event)
 			{
 			}
 
 			@Override
-			public void windowIconified(WindowEvent arg0)
+			public void windowDeiconified(WindowEvent event)
 			{
 			}
 
 			@Override
-			public void windowOpened(WindowEvent arg0)
+			public void windowIconified(WindowEvent event)
+			{
+			}
+
+			@Override
+			public void windowOpened(WindowEvent event)
 			{
 			}
 		});
-		done.addActionListener(new ActionListener()
-		{
 
+		doneButton.addActionListener(new ActionListener()
+		{
 			@Override
-			public void actionPerformed(ActionEvent arg0)
+			public void actionPerformed(ActionEvent event)
 			{
-				clicked = false;
-				String timerName = (String) timers.getSelectedItem();
-				long startTime = Integer.parseInt(totalTime.getText()) * 1000;
-				long increment = Integer.parseInt(increase.getText()) * 1000;
+				m_isWorking = false;
+				String timerName = (String) timerComboBox.getSelectedItem();
+				long startTime = Integer.parseInt(totalTimeField.getText()) * 1000;
+				long increment = Integer.parseInt(increaseField.getText()) * 1000;
+
+				RunnableOfT<Boolean> timeElapsedCallback = new RunnableOfT<Boolean>()
+				{
+					@Override
+					public void run(Boolean isBlackTimer)
+					{
+						Result result = isBlackTimer ? Result.WHITE_WIN : Result.BLACK_WIN;
+						result.setGUIText("Time has run out. " + result.winText() + "\n");
+						PlayGame.endOfGame(result);
+					}
+				};
 				ChessTimer blackTimer = null;
 				ChessTimer whiteTimer = null;
+
 				if (timerName.equals("No timer"))
 				{
 					blackTimer = new NoTimer();
 					whiteTimer = new NoTimer();
-				} else if (timerName.equals("Bronstein Delay"))
-				{
-					blackTimer = new BronsteinDelay(increment, startTime, true);
-					whiteTimer = new BronsteinDelay(increment, startTime, false);
-				} else if (timerName.equals("Fischer"))
-				{
-					blackTimer = new Fischer(increment, startTime, false, true);
-					whiteTimer = new Fischer(increment, startTime, false, false);
-				} else if (timerName.equals("Fischer After"))
-				{
-					blackTimer = new Fischer(increment, startTime, true, true);
-					whiteTimer = new Fischer(increment, startTime, true, false);
-				} else if (timerName.equals("Hour Glass"))
-				{
-					blackTimer = new HourGlass(startTime / 2, true); // time is
-																		// halved
-																		// since
-																		// this
-																		// is
-																		// actually
-					// the timer the player is not allowed to exceed.
-					whiteTimer = new HourGlass(startTime / 2, false);
-				} else if (timerName.equals("Simple Delay"))
-				{
-					blackTimer = new SimpleDelay(increment, startTime, true);
-					whiteTimer = new SimpleDelay(increment, startTime, false);
-				} else
-				{
-					blackTimer = new Word(startTime);
-					whiteTimer = new Word(startTime);
 				}
-				// Create the new panel and display it, then get rid of this pop
-				// up.
-
-				if (isNetwork)
+				else if (timerName.equals("Bronstein Delay"))
 				{
-					Game toPlay = Builder.newGame((String) dropdown
-							.getSelectedItem());
-					toPlay.setTimers(whiteTimer, blackTimer);
+					blackTimer = new BronsteinDelayTimer(timeElapsedCallback, increment, startTime, true);
+					whiteTimer = new BronsteinDelayTimer(timeElapsedCallback, increment, startTime, false);
+				}
+				else if (timerName.equals("Fischer"))
+				{
+					blackTimer = new FischerTimer(timeElapsedCallback, increment, startTime, false, true);
+					whiteTimer = new FischerTimer(timeElapsedCallback, increment, startTime, false, false);
+				}
+				else if (timerName.equals("Fischer After"))
+				{
+					blackTimer = new FischerTimer(timeElapsedCallback, increment, startTime, true, true);
+					whiteTimer = new FischerTimer(timeElapsedCallback, increment, startTime, true, false);
+				}
+				else if (timerName.equals("Hour Glass"))
+				{
+					// time is halved since it is actually the time the player
+					// is not allowed to exceed
+					blackTimer = new HourGlassTimer(timeElapsedCallback, startTime / 2, true);
+					whiteTimer = new HourGlassTimer(timeElapsedCallback, startTime / 2, false);
+				}
+				else if (timerName.equals("Simple Delay"))
+				{
+					blackTimer = new SimpleDelayTimer(timeElapsedCallback, increment, startTime, true);
+					whiteTimer = new SimpleDelayTimer(timeElapsedCallback, increment, startTime, false);
+				}
+				else
+				{
+					blackTimer = new WordTimer(startTime);
+					whiteTimer = new WordTimer(startTime);
+				}
+
+				if (isNetworkPlay)
+				{
+					Game gameToPlay = Builder.newGame((String) dropdown.getSelectedItem());
+					gameToPlay.setTimers(whiteTimer, blackTimer);
 					final PlayNetGame game;
-					if (host.equals(arg0))
+					// TODO: this if statement can't be right...
+					if (m_hostName.equals(event.toString()))
 					{
 						try
 						{
-							game = new PlayNetGame(toPlay, false, true);
-						} catch (Exception e)
+							game = new PlayNetGame(gameToPlay, false, true);
+						}
+						catch (Exception e)
 						{
 							return;
 						}
-					} else
+					}
+					else
 					{
 						try
 						{
-							game = new PlayNetGame(toPlay, false, false);
-						} catch (Exception e)
+							game = new PlayNetGame(gameToPlay, false, false);
+						}
+						catch (Exception e)
 						{
 							return;
 						}
 					}
 					try
 					{
-						NewGameMenu.cancelled = false;
+						NewGameMenu.m_isCancelled = false;
 						Thread host = new Thread(new Runnable()
 						{
 							@Override
@@ -774,64 +721,76 @@ public class NewGameMenu extends JPanel
 								try
 								{
 									new NetworkServer().host(game);
-								} catch (Exception e)
+								}
+								catch (Exception e)
 								{
 									e.printStackTrace();
 								}
 							}
 						});
-						Driver.getInstance().setPanel(new NetLoading(host));
+						Driver.getInstance().setPanel(new NetLoading());
 						host.start();
-
-					} catch (Exception e)
+					}
+					catch (Exception e)
 					{
 						System.out.println("Host");
 						e.printStackTrace();
 					}
-				} else
+				}
+				else
 				{
-					Game toPlay = Builder.newGame((String) dropdown
-							.getSelectedItem());
-					toPlay.setTimers(whiteTimer, blackTimer);
+					Game gameToPlay = Builder.newGame((String) dropdown.getSelectedItem());
+					gameToPlay.setTimers(whiteTimer, blackTimer);
 					PlayGame game = null;
 					try
 					{
-						game = new PlayGame(toPlay, false);
-					} catch (Exception e)
+						game = new PlayGame(gameToPlay, false);
+					}
+					catch (Exception e)
 					{
+						e.printStackTrace();
 						return;
 					}
 					Driver.getInstance().setPanel(game);
 				}
-				popup.dispose();
+				popupFrame.dispose();
 			}
 		});
 
-		// Create button and add ActionListener
-		final JButton back = new JButton("Back");
-		back.addActionListener(new ActionListener()
+		final JButton Button = new JButton("Cancel");
+		Button.addActionListener(new ActionListener()
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent arg0)
+			public void actionPerformed(ActionEvent event)
 			{
-				clicked = false;
-				// Get rid of this pop up.
-				popup.dispose();
+				m_isWorking = false;
+				popupFrame.dispose();
 			}
 		});
 
-		JPanel buttons = new JPanel();
-		buttons.setLayout(new FlowLayout());
-		buttons.add(back);
-		buttons.add(done);
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.setLayout(new FlowLayout());
+		buttonPanel.add(doneButton);
+		buttonPanel.add(Button);
 
-		c.gridx = 0;
-		c.gridy = 4;
-		c.gridwidth = 2;
-		c.fill = GridBagConstraints.HORIZONTAL;
-		popup.add(buttons, c);
-		popup.setVisible(true);
+		constraints.gridx = 0;
+		constraints.gridy = 4;
+		constraints.gridwidth = 2;
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		popupFrame.add(buttonPanel, constraints);
+		popupFrame.setVisible(true);
 	}
 
+	private static final long serialVersionUID = -6371389704966320508L;
+	private static final String[] TIMER_NAMES = { "No timer", "Bronstein Delay", "Fischer", "Fischer After", "Hour Glass",
+			"Simple Delay", "Word" };
+
+	public static boolean m_isCancelled = false;
+
+	private JButton m_aiPlayButton;
+	private JButton m_humanPlayButton;
+	private JButton m_networkPlayButton;
+	private JButton m_returnToMainButton;
+	private String m_hostName = "";
+	private boolean m_isWorking;
 }

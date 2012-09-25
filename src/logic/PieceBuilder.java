@@ -1,49 +1,13 @@
 package logic;
 
 import java.io.Serializable;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
-import javax.swing.ImageIcon;
+import com.google.common.collect.Maps;
 
-/**
- * PieceBuilder.java
- * 
- * Builder class to create Piece Types
- * 
- * @author Drew Hannay, Daniel Opdyke & Alisa Maas
- * 
- * CSCI 335, Wheaton College, Spring 2011 Phase 2 April 7, 2011
- */
 public class PieceBuilder implements Serializable
 {
-
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = -1351201562740885961L;
-
-	/**
-	 * The HashMap of stored Piece types
-	 */
-	private static HashMap<String, PieceBuilder> pieceTypes = new HashMap<String, PieceBuilder>();
-	/**
-	 * The name of this Piece Type
-	 */
-	private String name;
-	/**
-	 * The Icon for this Piece Type (Light Team).
-	 */
-	private ImageIcon lightImage;
-	/**
-	 * The Icon for this Piece Type (Dark Team).
-	 */
-	private ImageIcon darkImage;
-	/**
-	 * HashMap for this Piece Type's movements.
-	 */
-	private HashMap<Character, Integer> movements;
-
 	/**
 	 * Static Initializer Read in the saved HashMap from a file. If that fails,
 	 * build a new HashMap with Classic chess pieces and save that to a file.
@@ -54,17 +18,17 @@ public class PieceBuilder implements Serializable
 	}
 
 	/**
-	 * Initialize types...O
+	 * Initialize types...
 	 */
 	public static void initPieceTypes()
 	{
-		pieceTypes = new HashMap<String, PieceBuilder>();
-		pieceTypes.put("Pawn", new PieceBuilder("Pawn"));
-		pieceTypes.put("Rook", new PieceBuilder("Rook"));
-		pieceTypes.put("Bishop", new PieceBuilder("Bishop"));
-		pieceTypes.put("Knight", new PieceBuilder("Knight"));
-		pieceTypes.put("Queen", new PieceBuilder("Queen"));
-		pieceTypes.put("King", new PieceBuilder("King"));
+		m_pieceTypes = Maps.newHashMap();
+		m_pieceTypes.put("Pawn", new PieceBuilder("Pawn"));
+		m_pieceTypes.put("Rook", new PieceBuilder("Rook"));
+		m_pieceTypes.put("Bishop", new PieceBuilder("Bishop"));
+		m_pieceTypes.put("Knight", new PieceBuilder("Knight"));
+		m_pieceTypes.put("Queen", new PieceBuilder("Queen"));
+		m_pieceTypes.put("King", new PieceBuilder("King"));
 	}
 
 	/**
@@ -72,7 +36,7 @@ public class PieceBuilder implements Serializable
 	 */
 	public PieceBuilder()
 	{
-		movements = new HashMap<Character, Integer>();
+		m_movements = Maps.newHashMap();
 	}
 
 	/**
@@ -87,15 +51,11 @@ public class PieceBuilder implements Serializable
 		 * Changes made here. PieceBuilders need to check if they already have
 		 * an instantiation before making another copy of movements.
 		 */
-		this.name = name;
+		m_name = name;
 		if (!PieceBuilder.isPieceType(name))
-		{
-
-			movements = new HashMap<Character, Integer>();
-		} else
-		{
-			movements = pieceTypes.get(name).movements;
-		}
+			m_movements = Maps.newHashMap();
+		else
+			m_movements = m_pieceTypes.get(name).m_movements;
 	}
 
 	/**
@@ -105,7 +65,7 @@ public class PieceBuilder implements Serializable
 	 */
 	public static Set<String> getSet()
 	{
-		return pieceTypes.keySet();
+		return m_pieceTypes.keySet();
 	}
 
 	/**
@@ -116,7 +76,7 @@ public class PieceBuilder implements Serializable
 	 */
 	public static boolean isPieceType(String name)
 	{
-		return pieceTypes.containsKey(name);
+		return m_pieceTypes.containsKey(name);
 	}
 
 	/**
@@ -128,10 +88,9 @@ public class PieceBuilder implements Serializable
 	 * @param board The Board the Piece occupies
 	 * @return The new Piece
 	 */
-	public static Piece makePiece(String name, boolean isBlack, Square origin,
-			Board board)
+	public static Piece makePiece(String name, boolean isBlack, Square origin, Board board)
 	{
-		return pieceTypes.get(name).makePiece(isBlack, origin, board);
+		return m_pieceTypes.get(name).makePiece(isBlack, origin, board);
 	}
 
 	/**
@@ -141,7 +100,7 @@ public class PieceBuilder implements Serializable
 	 */
 	public static void savePieceType(PieceBuilder p)
 	{
-		pieceTypes.put(p.name, p);
+		m_pieceTypes.put(p.m_name, p);
 	}
 
 	/**
@@ -154,7 +113,7 @@ public class PieceBuilder implements Serializable
 	public void addMove(char c, int num)
 	{
 		// TODO Check that c is valid.
-		movements.put(c, num);
+		m_movements.put(c, num);
 	}
 
 	/**
@@ -167,24 +126,21 @@ public class PieceBuilder implements Serializable
 	 */
 	private Piece makePiece(boolean isBlack, Square origin, Board board)
 	{
-		// TODO is it worth using reflection to get rid of that if/else? Doable,
-		// but worth it?
-		// I know how to do this so talk to me if we want to --Alisa
-		if (name.equals("Bishop"))
+		// TODO is it worth using reflection to get rid of that if/else?
+		if (m_name.equals("Bishop"))
 			return Builder.createBishop(isBlack, origin, board);
-		if (name.equals("King"))
+		if (m_name.equals("King"))
 			return Builder.createKing(isBlack, origin, board);
-		if (name.equals("Knight"))
+		if (m_name.equals("Knight"))
 			return Builder.createKnight(isBlack, origin, board);
-		if (name.equals("Pawn"))
+		if (m_name.equals("Pawn"))
 			return Builder.createPawn(isBlack, origin, board);
-		if (name.equals("Queen"))
+		if (m_name.equals("Queen"))
 			return Builder.createQueen(isBlack, origin, board);
-		if (name.equals("Rook"))
+		if (m_name.equals("Rook"))
 			return Builder.createRook(isBlack, origin, board);
 		else
-			return new Piece(name, darkImage, lightImage, isBlack, origin,
-					board, movements);
+			return new Piece(m_name, isBlack, origin, board, m_movements);
 		// try {
 		//
 		// Class<?> klazz = Class.forName("logic." + name);
@@ -199,34 +155,16 @@ public class PieceBuilder implements Serializable
 		// }
 	}
 
-	/**
-	 * Setter method for darkImage
-	 * 
-	 * @param darkImage The darkImage to set
-	 */
-	public void setDarkImage(ImageIcon darkImage)
-	{
-		this.darkImage = darkImage;
-	}
-
-	/**
-	 * Setter method for lightImage
-	 * 
-	 * @param lightImage The lightImage to set
-	 */
-	public void setLightImage(ImageIcon lightImage)
-	{
-		this.lightImage = lightImage;
-	}
-
-	/**
-	 * Setter method for the name of the Piece
-	 * 
-	 * @param name The name to set
-	 */
 	public void setName(String name)
 	{
-		this.name = name;
+		m_name = name;
 	}
+
+	private static final long serialVersionUID = -1351201562740885961L;
+
+	private static Map<String, PieceBuilder> m_pieceTypes;
+
+	private String m_name;
+	private Map<Character, Integer> m_movements;
 
 }

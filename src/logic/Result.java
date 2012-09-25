@@ -2,163 +2,64 @@ package logic;
 
 import java.io.Serializable;
 
-/**
- * Result.java
- * 
- * Class to model the end result of a chess game.
- * 
- * @author Drew Hannay & Alisa Maas
- * 
- * CSCI 335, Wheaton College, Spring 2011 Phase 2 April 7, 2011
- */
-public class Result implements Serializable
+public enum Result implements Serializable
 {
+	UNDECIDED,
+	DRAW,
+	WHITE_WIN,
+	BLACK_WIN;
 
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = -6844368741916902616L;
-	/**
-	 * Indicate an undecided result
-	 */
-	public static final int UNDECIDED = 0;
-	/**
-	 * Indicate a draw
-	 */
-	public static final int DRAW = 1;
-	/**
-	 * Indicate a white win
-	 */
-	public static final int WHITE_WIN = 2;
-	/**
-	 * Indicate a black win
-	 */
-	public static final int BLACK_WIN = 3;
-
-	/**
-	 * Indicate the choice for this Result
-	 */
-	protected int choice = UNDECIDED;
-	/**
-	 * The text to print for this Result
-	 */
-	protected String text = "";
-
-	/**
-	 * Constructor
-	 * 
-	 * @param i The choice for this Result
-	 */
-	public Result(int i)
-	{
-		choice = i;
-	}
-
-	/**
-	 * Check if this game is a black win
-	 * 
-	 * @return If this game is a black win
-	 */
-	public boolean isBlackWin()
-	{
-		return choice == BLACK_WIN;
-	}
-
-	/**
-	 * Check if this game is a draw
-	 * 
-	 * @return If this game is a draw
-	 */
-	public boolean isDraw()
-	{
-		return choice == DRAW;
-	}
-
-	/**
-	 * Check if this game is undecided
-	 * 
-	 * @return If this game is undecided
-	 */
-	public boolean isUndecided()
-	{
-		return choice == UNDECIDED;
-	}
-
-	/**
-	 * Check if this game is a white win
-	 * 
-	 * @return If this game is a white win
-	 */
-	public boolean isWhiteWin()
-	{
-		return choice == WHITE_WIN;
-	}
-
-	/**
-	 * @return The String text of what should be on the end game popup box.
-	 */
 	public String winText()
 	{
-		switch (choice)
+		switch (this)
 		{
-		case Result.DRAW:
+		case DRAW:
 			return "Draw!";
-		case Result.WHITE_WIN:
+		case WHITE_WIN:
 			return "White won!";
-		case Result.BLACK_WIN:
+		case BLACK_WIN:
 			return "Black won!";
 		default:
 			return "";
 		}
 	}
 
-	/**
-	 * Getter method for the text of this Result
-	 * 
-	 * @return The text of this Result
-	 */
-	public String text()
+	public void setGUIText(String text)
 	{
-		return text;
+		m_GUIText = text;
 	}
 
-	/**
-	 * Setter method for the text of this Result
-	 * 
-	 * @param text The text of this Result
-	 */
-	public void setText(String text)
+	public String getGUIText()
 	{
-		this.text = text;
+		return m_GUIText;
 	}
 
-	/**
-	 * @return The String representation of this Result
-	 */
 	@Override
 	public String toString()
 	{
-		@SuppressWarnings("unused")
-		String s = "";
+		String acnResult = "";
 
-		switch (choice)
+		switch (this)
 		{
 		case UNDECIDED:
-			s = "?";
+			acnResult = "?";
 			break;
 		case WHITE_WIN:
-			s = "1-0";
+			acnResult = "1-0";
 			break;
 		case DRAW:
-			s = "1/2-1/2";
+			acnResult = "1/2-1/2";
 			break;
 		case BLACK_WIN:
-			s = "0-1";
+			acnResult = "0-1";
 			break;
 		default:
-			s = "?";
+			acnResult = "?";
 		}
-		return text;
+		return acnResult;
 	}
 
+	private static final long serialVersionUID = -6844368741916902616L;
+
+	private String m_GUIText;
 }

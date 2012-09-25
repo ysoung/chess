@@ -2,9 +2,6 @@ package rules;
 
 import gui.PlayGame;
 
-import java.io.Serializable;
-import java.lang.reflect.Method;
-import java.util.HashMap;
 import java.util.List;
 
 import logic.Game;
@@ -12,345 +9,188 @@ import logic.Move;
 import logic.Piece;
 import logic.Result;
 
-/**
- * EndOfGame.java
- * 
- * Class to hold methods with various implementations of determining if the end
- * of the game should happen.
- * 
- * @author Drew Hannay & Alisa Maas
- * 
- * CSCI 335, Wheaton College, Spring 2011 Phase 2 April 7, 2011
- */
-public class EndOfGame implements Serializable
+public enum EndOfGame
 {
+	CLASSIC,
+	CHECK_N_TIMES,
+	LOSE_ALL_PIECES,
+	CAPTURE_ALL_PIECES,
+	CAPTURE_ALL_OF_TYPE;
 
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = 3818647273549549482L;
-
-	/**
-	 * The current Game object.
-	 */
-	private Game g;
-	/**
-	 * The Move object.
-	 */
-	private Move m;
-	/**
-	 * The number of times the opponent has been placed in check.
-	 */
-	private int checks;
-	/**
-	 * The maximum number of checks to place the opponent in before the game is
-	 * over.
-	 */
-	private int maxChecks;
-	/**
-	 * The name of the method.
-	 */
-	private String name;
-	/**
-	 * The type of the piece to capture all of.
-	 */
-	private String type;
-	/**
-	 * The method to perform.
-	 */
-	private transient Method doMethod;
-	/**
-	 * The method to undo.
-	 */
-	private transient Method undoMethod;
-	/**
-	 * A hashmap for convenience's sake to lookup the methods by name.
-	 */
-	private static HashMap<String, Method> doMethods = new HashMap<String, Method>();
-	/**
-	 * A hashmap for convenience's sake to lookup the undo methods by name.
-	 */
-	private static HashMap<String, Method> undoMethods = new HashMap<String, Method>();
-	/**
-	 * Is this the white or black rule set?
-	 */
-	private boolean isBlack;
-	static
+	public void checkEndOfGame(Piece objectivePiece)
 	{
-		try
+		switch (this)
 		{
-			doMethods.put("classic",
-					EndOfGame.class.getMethod("classicEndOfGame", Piece.class));
-			undoMethods.put("classic", EndOfGame.class.getMethod("dummyUndo"));
-			doMethods.put("checkNTimes",
-					EndOfGame.class.getMethod("checkNTimes", Piece.class));
-			undoMethods.put("checkNTimes",
-					EndOfGame.class.getMethod("undoCheckNTimes"));
-			doMethods.put("loseAllPieces",
-					EndOfGame.class.getMethod("loseAllPieces", Piece.class));
-			undoMethods.put("loseAllPieces",
-					EndOfGame.class.getMethod("dummyUndo"));
-			doMethods.put("captureAllPieces",
-					EndOfGame.class.getMethod("captureAllPieces", Piece.class));
-			undoMethods.put("captureAllPieces",
-					EndOfGame.class.getMethod("dummyUndo"));
-			doMethods.put("captureAllOfType",
-					EndOfGame.class.getMethod("captureAllOfType", Piece.class));
-			undoMethods.put("captureAllOfType",
-					EndOfGame.class.getMethod("dummyUndo"));
-
-		} catch (Exception e)
-		{
-			e.printStackTrace();
+		case CLASSIC:
+			classicCheckEndOfGame(objectivePiece);
+			break;
+		case CHECK_N_TIMES:
+			checkForCheckNTimes();
+			break;
+		case LOSE_ALL_PIECES:
+			checkLoseAllPieces();
+			break;
+		case CAPTURE_ALL_PIECES:
+			captureAllPieces();
+			break;
+		case CAPTURE_ALL_OF_TYPE:
+			checkCaptureAllOfType();
+			break;
+		default:
+			break;
 		}
 	}
 
-	/**
-	 * Create a new EndOfGame object
-	 * 
-	 * @param name The name of the method
-	 * @param maxChecks Set the instance variable
-	 * @param type Set the instance variable.
-	 * @param isBlack Is this for the black or white team?
-	 */
-	public EndOfGame(String name, int maxChecks, String type, boolean isBlack)
-	{
-		doMethod = doMethods.get(name);
-		undoMethod = undoMethods.get(name);
-		this.name = name;
-		this.maxChecks = maxChecks;
-		this.type = type;
-		this.isBlack = isBlack;
-		checks = 0;
-	}
-
-	/**
-	 * Capture all of a specified type to win.
-	 * 
-	 * @param objectivePiece Unused.
-	 */
-	public void captureAllOfType(Piece objectivePiece)
-	{
-		List<Piece> team = (!isBlack ? g.getBlackTeam() : g.getWhiteTeam());
-		for (Piece p : team)
-		{
-			if (p.getName().equals(type) && !p.isCaptured())
-			{
-				return;
-			}
-		}
-		Result r = new Result(isBlack ? Result.BLACK_WIN : Result.WHITE_WIN);
-		r.setText("Game Over! " + r.winText() + "\n");
-		PlayGame.endOfGame(r);
-	}
-
-	/**
-	 * Place the opponent in check n times to win.
-	 * 
-	 * @param objectivePiece the objective piece to place in check.
-	 */
-	public void checkNTimes(Piece objectivePiece)
-	{
-		if (g.getLastMove() != null && g.getLastMove().isVerified()
-				&& g.getLastMove().isCheck()
-				&& g.getLastMove().getPiece().isBlack() == isBlack)
-		{
-			if (++checks == maxChecks)
-			{
-				Result r = new Result(!isBlack ? Result.WHITE_WIN
-						: Result.BLACK_WIN);
-				r.setText("Game Over! " + r.winText() + "\n");
-				PlayGame.endOfGame(r);
-
-			}
-
-		}
-		m = g.getLastMove();
-	}
-
-	/**
-	 * In classic chess, one wins by placing the opponent in checkmate.
-	 * 
-	 * @param objectivePiece The objective piece.
-	 */
-	public void classicEndOfGame(Piece objectivePiece)
-	{
-
-		if (g.getLegalMoveCount() == 0 || objectivePiece.isCaptured())
-		{
-			// if the King is threatened, it's check mate.
-			if (objectivePiece == null || objectivePiece.isInCheck()
-					|| objectivePiece.isCaptured())
-			{
-				if (g.getLastMove() != null)
-				{
-					g.getLastMove().setCheckmate(true);
-					Result r = new Result(g.isBlackMove() ? Result.WHITE_WIN
-							: Result.BLACK_WIN);
-					String s1 = "Game over! " + r.winText() + "\n";
-
-					if (g.getThreats(objectivePiece) != null)
-						s1 += "The piece(s) that caused the final check are highlighted in Red. "
-								+ "\nThe piece that placed the King in check was the "
-								+ g.getThreats(objectivePiece)[0].getName()
-								+ " at location "
-								+ g.getThreats(objectivePiece)[0].getSquare()
-										.toString(
-												new boolean[] { false, false })
-								+ "\n";
-
-					r.setText(s1 + "What would you like to do? \n");
-					g.getLastMove().setResult(r);
-					if (!g.getHistory().contains(g.getLastMove()))
-					{
-						g.getHistory().add(g.getLastMove());
-					}
-					PlayGame.boardRefresh(g.getBoards());// Let the user see the
-															// final move.
-					PlayGame.endOfGame(r);
-				}
-			}
-			// if the King isn't threatened, then it's stale mate.
-			else
-			{
-				if (g.getLastMove() != null)
-				{
-					g.getLastMove().setStalemate(true);
-					Result r = new Result(Result.DRAW);
-					r.setText("Draw! " + "\n");
-					g.getLastMove().setResult(r);
-					if (!g.getHistory().contains(g.getLastMove()))
-					{
-						g.getHistory().add(g.getLastMove());
-					}
-					PlayGame.boardRefresh(g.getBoards());// Let the user see the
-															// final move.
-					PlayGame.endOfGame(r);
-				}
-			}
-		}
-	}
-
-	/**
-	 * Dummy undo method for methods that do not need undoing (more than 1)
-	 */
-	public void dummyUndo()
-	{
-	}
-
-	/**
-	 * Execute the appropriate method.
-	 * 
-	 * @param objectivePiece The objective piece.
-	 */
-	public void execute(Piece objectivePiece)
-	{
-		try
-		{
-			if (doMethod == null)
-			{
-				doMethod = doMethods.get(name);
-			}
-			doMethod.invoke(this, objectivePiece);
-		} catch (Exception e)
-		{
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * In this case, the goal is either to lose all pieces or capture all the
-	 * opponent's pieces based on the instance variable blackLosesPieces.
-	 * 
-	 * @param objectivePiece The objective piece; unused.
-	 */
-	public void loseAllPieces(Piece objectivePiece)
-	{
-		List<Piece> team = (!isBlack ? g.getBlackTeam() : g.getWhiteTeam());
-		for (Piece p : team)
-		{
-			if (!p.isCaptured())
-				return;
-		}
-		Result r = new Result(isBlack ? Result.BLACK_WIN : Result.WHITE_WIN);
-		r.setText("Game Over! " + r.winText() + "\n");
-		PlayGame.endOfGame(r);
-	}
-
-	/**
-	 * Capture all the pieces.
-	 * 
-	 * @param objectivePiece Unused.
-	 */
-	public void captureAllPieces(Piece objectivePiece)
-	{
-		List<Piece> team = (isBlack ? g.getBlackTeam() : g.getWhiteTeam());
-		for (Piece p : team)
-		{
-			if (!p.isCaptured())
-				return;
-		}
-		Result r = new Result(!isBlack ? Result.BLACK_WIN : Result.WHITE_WIN);
-		r.setText("Game Over! " + r.winText() + "\n");
-		PlayGame.endOfGame(r);
-	}
-
-	/**
-	 * Setter for g
-	 * 
-	 * @param g The new Game object.
-	 */
-	public void setGame(Game g)
-	{
-		this.g = g;
-	}
-
-	/**
-	 * Undo the appropriate method.
-	 */
 	public void undo()
 	{
-		try
+		switch (this)
 		{
-			if (undoMethod == null)
+		case CHECK_N_TIMES:
+			undoCheckForCheckNTimes();
+			break;
+		case CLASSIC:
+		case LOSE_ALL_PIECES:
+		case CAPTURE_ALL_PIECES:
+		case CAPTURE_ALL_OF_TYPE:
+		default:
+			break;
+		}
+	}
+
+	public EndOfGame init(int maxNumberOfChecks, String pieceName, boolean isBlackRuleSet)
+	{
+		m_maxNumberOfChecks = maxNumberOfChecks;
+		m_pieceName = pieceName;
+		m_isBlackRuleSet = isBlackRuleSet;
+
+		return this;
+	}
+
+	public void setGame(Game game)
+	{
+		m_game = game;
+	}
+
+	public String getCaptureAllPieceName()
+	{
+		return m_pieceName;
+	}
+
+	private void classicCheckEndOfGame(Piece objectivePiece)
+	{
+		if (m_game.getLegalMoveCount() == 0 || objectivePiece.isCaptured())
+		{
+			// if the King is threatened, it's check mate.
+			if (objectivePiece == null || objectivePiece.isInCheck() || objectivePiece.isCaptured())
 			{
-				undoMethod = undoMethods.get(name);
+				if (m_game.getLastMove() != null)
+				{
+					m_game.getLastMove().setCheckmate(true);
+					Result result = m_game.isBlackMove() ? Result.WHITE_WIN : Result.BLACK_WIN;
+					String resultText = "Game over! " + result.winText() + "\n";
+
+					if (m_game.getThreats(objectivePiece) != null)
+					{
+						resultText += "The piece(s) that caused the final check are highlighted in Red. "
+								+ "\nThe piece that placed the King in check was the "
+								+ m_game.getThreats(objectivePiece)[0].getName() + " at location "
+								+ m_game.getThreats(objectivePiece)[0].getSquare().toString(new boolean[] { false, false }) + "\n";
+					}
+					result.setGUIText(resultText + "What would you like to do? \n");
+					m_game.getLastMove().setResult(result);
+					if (!m_game.getHistory().contains(m_game.getLastMove()))
+						m_game.getHistory().add(m_game.getLastMove());
+
+					// let the user see the final move
+					PlayGame.boardRefresh(m_game.getBoards());
+					PlayGame.endOfGame(result);
+				}
 			}
-			undoMethod.invoke(this, (Object[]) null);
-		} catch (Exception e)
-		{
-			e.printStackTrace();
+			// if the King isn't threatened, then it's stalemate
+			else
+			{
+				if (m_game.getLastMove() != null)
+				{
+					m_game.getLastMove().setStalemate(true);
+					Result result = Result.DRAW;
+					result.setGUIText("Draw! " + "\n");
+					m_game.getLastMove().setResult(result);
+					if (!m_game.getHistory().contains(m_game.getLastMove()))
+					{
+						m_game.getHistory().add(m_game.getLastMove());
+					}
+					// let the user see the final move
+					PlayGame.boardRefresh(m_game.getBoards());
+					PlayGame.endOfGame(result);
+				}
+			}
 		}
 	}
 
-	/**
-	 * Undo checkNTimes resets the counter on the number of checks.
-	 */
-	public void undoCheckNTimes()
+	private void checkForCheckNTimes()
 	{
-		if (m != null && m.isVerified() && m.isCheck())
+		if (m_game.getLastMove() != null && m_game.getLastMove().isVerified() && m_game.getLastMove().isCheck()
+				&& m_game.getLastMove().getPiece().isBlack() == m_isBlackRuleSet)
 		{
-			--checks;
+			if (++m_numberOfChecks == m_maxNumberOfChecks)
+			{
+				Result result = !m_isBlackRuleSet ? Result.WHITE_WIN : Result.BLACK_WIN;
+				result.setGUIText("Game Over! " + result.winText() + "\n");
+				PlayGame.endOfGame(result);
+			}
 		}
+		m_move = m_game.getLastMove();
 	}
 
-	/**
-	 * Getter for the method name
-	 * 
-	 * @return The method being used
-	 */
-	public String getName()
+	private void undoCheckForCheckNTimes()
 	{
-		return name;
+		if (m_move != null && m_move.isVerified() && m_move.isCheck())
+			m_numberOfChecks--;
 	}
 
-	/**
-	 * The type to capture all of, if any.
-	 * 
-	 * @return The string representation of the type.
-	 */
-	public String getType()
+	private void checkLoseAllPieces()
 	{
-		return type;
+		List<Piece> team = (!m_isBlackRuleSet ? m_game.getBlackTeam() : m_game.getWhiteTeam());
+		for (Piece piece : team)
+		{
+			if (!piece.isCaptured())
+				return;
+		}
+		Result result = m_isBlackRuleSet ? Result.BLACK_WIN : Result.WHITE_WIN;
+		result.setGUIText("Game Over! " + result.winText() + "\n");
+		PlayGame.endOfGame(result);
 	}
+
+	private void captureAllPieces()
+	{
+		List<Piece> team = (m_isBlackRuleSet ? m_game.getBlackTeam() : m_game.getWhiteTeam());
+		for (Piece piece : team)
+		{
+			if (!piece.isCaptured())
+				return;
+		}
+		Result result = !m_isBlackRuleSet ? Result.BLACK_WIN : Result.WHITE_WIN;
+		result.setGUIText("Game Over! " + result.winText() + "\n");
+		PlayGame.endOfGame(result);
+	}
+
+	private void checkCaptureAllOfType()
+	{
+		List<Piece> team = (!m_isBlackRuleSet ? m_game.getBlackTeam() : m_game.getWhiteTeam());
+		for (Piece piece : team)
+		{
+			if (piece.getName().equals(m_pieceName) && !piece.isCaptured())
+				return;
+		}
+		Result result = m_isBlackRuleSet ? Result.BLACK_WIN : Result.WHITE_WIN;
+		result.setGUIText("Game Over! " + result.winText() + "\n");
+		PlayGame.endOfGame(result);
+	}
+
+	private Game m_game;
+	private Move m_move;
+	private int m_numberOfChecks;
+	private int m_maxNumberOfChecks;
+	private String m_pieceName;
+	private boolean m_isBlackRuleSet;
 }

@@ -1,300 +1,132 @@
 package rules;
 
-import java.io.Serializable;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-
 import javax.swing.JOptionPane;
 
 import logic.Game;
 import logic.Piece;
 import logic.PieceBuilder;
 
-/**
- * Promote.java
- * 
- * Class to hold methods controlling promotion of different Piece types
- * 
- * @author Drew Hannay & Alisa Maas
- * 
- * CSCI 335, Wheaton College, Spring 2011 Phase 2 April 7, 2011
- */
-public class Promote implements Serializable
+public enum Promote
 {
+	CLASSIC,
+	NO_PROMOTIONS;
 
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = -2346237261367453073L;
-
-	/**
-	 * The current Game object.
-	 */
-	private Game g;
-
-	/**
-	 * The name of the method to call.
-	 */
-	private String name;
-	/**
-	 * The method to call.
-	 */
-	private transient Method doMethod;
-	/**
-	 * The method to undo.
-	 */
-	private transient Method undoMethod;
-	/**
-	 * A hashmap for convenience.
-	 */
-	private static HashMap<String, Method> doMethods = new HashMap<String, Method>();
-	/**
-	 * A hashmap for convenience.
-	 */
-	private static HashMap<String, Method> undoMethods = new HashMap<String, Method>();
-
-	/**
-	 * What the piece was promoted from
-	 */
-	private static String lastPromoted;
-	/**
-	 * Used to allow promotion to work properly when loading a saved game.
-	 */
-	private String resetLastPromoted;
-	/**
-	 * What it was promoted to.
-	 */
-	private String klazz;
-
-	static
+	public Piece promotePiece(Piece pieceToPromote, boolean pieceCanBePromoted, String pieceTypeToPromoteFrom)
 	{
-		try
+		if (m_lastPromotedFromPieceName == null)
+			m_lastPromotedFromPieceName = m_resetLastPromoted;
+
+		Piece promotedPiece;
+		switch (this)
 		{
-			doMethods.put("classic", Promote.class.getMethod(
-					"classicPromotion", Piece.class, boolean.class,
-					String.class));
-			undoMethods.put("classic",
-					Promote.class.getMethod("classicUndo", Piece.class));
-			doMethods.put("noPromos", Promote.class.getMethod("noPromo",
-					Piece.class, boolean.class, String.class));
-			undoMethods.put("noPromos",
-					Promote.class.getMethod("noPromoUndo", Piece.class));
-		} catch (Exception e)
+		case CLASSIC:
+			promotedPiece = classicPromotion(pieceToPromote, pieceCanBePromoted, pieceTypeToPromoteFrom);
+			break;
+		case NO_PROMOTIONS:
+			promotedPiece = pieceToPromote;
+			break;
+		default:
+			promotedPiece = null;
+		}
+
+		m_resetLastPromoted = m_lastPromotedFromPieceName;
+		return promotedPiece;
+	}
+
+	public Piece undo(Piece pieceToUnpromote)
+	{
+		switch (this)
 		{
-			e.printStackTrace();
+		case CLASSIC:
+			return classicUndo(pieceToUnpromote);
+		case NO_PROMOTIONS:
+			return pieceToUnpromote;
+		default:
+			return null;
 		}
 	}
 
-	/**
-	 * @param name The name of the method to use.
-	 */
-	public Promote(String name)
+	public void setGame(Game game)
 	{
-		doMethod = doMethods.get(name);
-		undoMethod = undoMethods.get(name);
-		this.name = name;
+		m_game = game;
 	}
 
-	/**
-	 * In this case, only pawns can promote, allow the user to pick which class
-	 * it promotes to.
-	 * 
-	 * @param p The piece to promote
-	 * @param verified Whether it has been verified that this is ok
-	 * @param promo What the piece was promoted to.
-	 * @return The promoted Piece.
-	 */
-	public Piece classicPromotion(Piece p, boolean verified, String promo)
+	private Piece classicPromotion(Piece pieceToPromote, boolean pieceCanBePromoted, String pieceTypeToPromoteFrom)
 	{
-		if (!verified
-				&& (p.getPromotesTo() == null || p.getPromotesTo().size() == 0))
-			return p;
-		if (!verified)
+		if (!pieceCanBePromoted && (pieceToPromote.getPromotesTo() == null || pieceToPromote.getPromotesTo().size() == 0))
+			return pieceToPromote;
+		if (!pieceCanBePromoted)
 		{
-			lastPromoted = p.getName();
-			klazz = p.getName();
+			m_lastPromotedFromPieceName = pieceToPromote.getName();
+			m_promotedToClass = pieceToPromote.getName();
 		}
-		if (verified && promo != null && !promo.equals(p.getName()))
+		if (pieceCanBePromoted && pieceTypeToPromoteFrom != null && !pieceTypeToPromoteFrom.equals(pieceToPromote.getName()))
 		{
 			try
 			{
-
-				Piece promoted = PieceBuilder.makePiece(promo, p.isBlack(),
-						p.getSquare(), p.getBoard());
+				Piece promoted = PieceBuilder.makePiece(pieceTypeToPromoteFrom, pieceToPromote.isBlack(), pieceToPromote.getSquare(), pieceToPromote.getBoard());
 				if (promoted.isBlack())
-				{
-					g.getBlackTeam().set(g.getBlackTeam().indexOf(p), promoted);
-				} else
-				{
-					g.getWhiteTeam().set(g.getWhiteTeam().indexOf(p), promoted);
-				}
+					m_game.getBlackTeam().set(m_game.getBlackTeam().indexOf(pieceToPromote), promoted);
+				else
+					m_game.getWhiteTeam().set(m_game.getWhiteTeam().indexOf(pieceToPromote), promoted);
 				promoted.getLegalDests().clear();
-				promoted.setMoveCount(p.getMoveCount());
+				promoted.setMoveCount(pieceToPromote.getMoveCount());
 				return promoted;
-			} catch (Exception e)
+			}
+			catch (Exception e)
 			{
 				e.printStackTrace();
 			}
 		}
-		if (!verified
-				&& (p.getPromotesTo() == null || p.getPromotesTo().size() == 0))
-			return p;
-		if (!verified && promo == null && g.isBlackMove() == p.isBlack())
+		if (!pieceCanBePromoted && (pieceToPromote.getPromotesTo() == null || pieceToPromote.getPromotesTo().size() == 0))
+			return pieceToPromote;
+		if (!pieceCanBePromoted && pieceTypeToPromoteFrom == null && m_game.isBlackMove() == pieceToPromote.isBlack())
 		{
-			klazz = "";
-			if (p.getPromotesTo().size() == 1)
-				klazz = p.getPromotesTo().get(0);
-			while (klazz.equals(""))
+			m_promotedToClass = "";
+			if (pieceToPromote.getPromotesTo().size() == 1)
+				m_promotedToClass = pieceToPromote.getPromotesTo().get(0);
+			while (m_promotedToClass.equals(""))
 			{
-				String result = (String) JOptionPane.showInputDialog(null,
-						"Select the Promotion type:", "Promo choice",
-						JOptionPane.PLAIN_MESSAGE, null, p.getPromotesTo()
-								.toArray(), null);
+				String result = (String) JOptionPane.showInputDialog(null, "Select the Promotion type:", "Promo choice",
+						JOptionPane.PLAIN_MESSAGE, null, pieceToPromote.getPromotesTo().toArray(), null);
 
 				if (result == null)
-				{
 					continue;
-				}
 
-				klazz = result;
-				promo = result;
+				m_promotedToClass = result;
+				pieceTypeToPromoteFrom = result;
 			}
-		} else if (promo != null && p.getPromotesTo() != null
-				&& p.getPromotesTo().contains(promo))
+		}
+		else if (pieceTypeToPromoteFrom != null && pieceToPromote.getPromotesTo() != null && pieceToPromote.getPromotesTo().contains(pieceTypeToPromoteFrom))
 		{
-			klazz = promo;
+			m_promotedToClass = pieceTypeToPromoteFrom;
 		}
 
 		try
 		{
-
-			Piece promoted = PieceBuilder.makePiece(klazz, p.isBlack(),
-					p.getSquare(), p.getBoard());
+			Piece promoted = PieceBuilder.makePiece(m_promotedToClass, pieceToPromote.isBlack(), pieceToPromote.getSquare(), pieceToPromote.getBoard());
 			if (promoted.isBlack())
-			{
-				g.getBlackTeam().set(g.getBlackTeam().indexOf(p), promoted);
-			} else
-			{
-				g.getWhiteTeam().set(g.getWhiteTeam().indexOf(p), promoted);
-			}
+				m_game.getBlackTeam().set(m_game.getBlackTeam().indexOf(pieceToPromote), promoted);
+			else
+				m_game.getWhiteTeam().set(m_game.getWhiteTeam().indexOf(pieceToPromote), promoted);
 			promoted.getLegalDests().clear();
-			promoted.setMoveCount(p.getMoveCount());
+			promoted.setMoveCount(pieceToPromote.getMoveCount());
 			return promoted;
-		} catch (Exception e)
+		}
+		catch (Exception e)
 		{
-			return p;
+			return pieceToPromote;
 		}
 	}
 
-	/**
-	 * Revert the piece back to what it was.
-	 * 
-	 * @param p The piece to unpromote
-	 * @return The unpromoted piece.
-	 */
-	public Piece classicUndo(Piece p)
+	private Piece classicUndo(Piece pieceToUnpromote)
 	{
-		try
-		{
-			Piece promoted = classicPromotion(p, true, lastPromoted);
-			// Piece promoted = PieceBuilder.makePiece(lastPromoted,p.isBlack(),
-			// p.getSquare(), p.getBoard());
-			// if (promoted.isBlack()) {
-			// g.getBlackTeam().set(g.getBlackTeam().indexOf(p), promoted);
-			// } else {
-			// g.getWhiteTeam().set(g.getWhiteTeam().indexOf(p), promoted);
-			// }
-			// promoted.getLegalDests().clear();
-			// promoted.setMoveCount(p.getMoveCount());
-			return promoted;
-		} catch (Exception e)
-		{
-			e.printStackTrace();
-		}
-		return null;
+		return classicPromotion(pieceToUnpromote, true, m_lastPromotedFromPieceName);
 	}
 
-	/**
-	 * @param p The piece to promote
-	 * @param verified Whether the piece can be promoted
-	 * @param promo What to promote from.
-	 * @return The promoted Piece.
-	 */
-	public Piece execute(Piece p, boolean verified, String promo)
-	{
-		if (lastPromoted == null)
-			lastPromoted = resetLastPromoted;
+	private static String m_lastPromotedFromPieceName;
 
-		try
-		{
-			if (doMethod == null)
-			{
-				doMethod = doMethods.get(name);
-			}
-			Piece toReturn = (Piece) doMethod.invoke(this, p, verified, promo);
-			resetLastPromoted = lastPromoted;
-			return toReturn;
-		} catch (Exception e)
-		{
-			e.printStackTrace();
-			return null;
-		}
-	}
-
-	/**
-	 * Don't allow promotion.
-	 * 
-	 * @param p The piece to "promote"
-	 * @param b Unused
-	 * @param c Unused
-	 * @return the original piece.
-	 */
-	public Piece noPromo(Piece p, boolean b, String c)
-	{
-		return p;
-	}
-
-	/**
-	 * Return the original piece
-	 * 
-	 * @param p The piece to "unpromote"
-	 * @return The original piece.
-	 */
-	public Piece noPromoUndo(Piece p)
-	{
-		return p;
-	}
-
-	/**
-	 * @param g Setter for g.
-	 */
-	public void setGame(Game g)
-	{
-		this.g = g;
-	}
-
-	/**
-	 * @param p The piece to unpromote
-	 * @return The unpromoted piece.
-	 */
-	public Piece undo(Piece p)
-	{
-		try
-		{
-			// if(lastPromoted==null)
-			// lastPromoted = resetLastPromoted;
-			if (undoMethod == null)
-			{
-				undoMethod = undoMethods.get(name);
-			}
-			Piece toReturn = (Piece) undoMethod.invoke(this, p);
-			// resetLastPromoted = lastPromoted;
-			return toReturn;
-		} catch (Exception e)
-		{
-			e.printStackTrace();
-			return null;
-		}
-	}
-
+	private Game m_game;
+	private String m_resetLastPromoted;
+	private String m_promotedToClass;
 }

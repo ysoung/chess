@@ -2,7 +2,6 @@ package ai;
 
 import gui.PlayNetGame;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import logic.Board;
@@ -10,6 +9,8 @@ import logic.Game;
 import logic.Move;
 import logic.Piece;
 import logic.Square;
+
+import com.google.common.collect.Lists;
 
 /**
  * AIAdapter.java
@@ -23,25 +24,24 @@ import logic.Square;
  */
 public class AIAdapter
 {
-
 	/**
 	 * The Game being viewed by the AI plug in
 	 */
-	private Game g;
+	private Game m_game;
 
 	/**
 	 * The array of boards for reference.
 	 */
-	private AIBoard[] boards;
+	private AIBoard[] m_boards;
 
 	/**
 	 * Constructor
 	 * 
-	 * @param g The Game being played
+	 * @param game The Game being played
 	 */
-	public AIAdapter(Game g)
+	public AIAdapter(Game game)
 	{
-		this.g = g;
+		m_game = game;
 	}
 
 	/**
@@ -49,33 +49,35 @@ public class AIAdapter
 	 */
 	public Game getGame()
 	{
-		return g;
+		return m_game;
 	}
 
 	/**
-	 * @param ai The AI logical analysis plugin for decision trees
+	 * @param aiPlugin The AI logical analysis plugin for decision trees
 	 */
-	public void runGame(AIPlugin ai)
+	public void runGame(AIPlugin aiPlugin)
 	{
-		PlayNetGame.running = true;
-		while (PlayNetGame.running)
+		PlayNetGame.m_isRunning = true;
+		while (PlayNetGame.m_isRunning)
 		{
-			while (g.isBlackMove())
+			while (m_game.isBlackMove())
 			{
 				try
 				{
 					Thread.sleep(200);
-				} catch (InterruptedException e)
+				}
+				catch (InterruptedException e)
 				{
 				}
 				AIBoard[] boards = getBoards();
-				FakeMove fm = ai.getMove(boards);
+				FakeMove fm = aiPlugin.getMove(boards);
 				playMove(fm);
 			}
 			try
 			{
 				Thread.sleep(0);
-			} catch (InterruptedException e)
+			}
+			catch (InterruptedException e)
 			{
 				e.printStackTrace();
 			}
@@ -83,18 +85,19 @@ public class AIAdapter
 	}
 
 	/**
-	 * @param m The move that it wishes to try
+	 * @param move The move that it wishes to try
 	 * @return Whether it moved there or not.
 	 */
-	public boolean playMove(FakeMove m)
+	public boolean playMove(FakeMove move)
 	{
 		try
 		{
-			Board b = g.getBoards()[m.boardNum];
-			g.playMove(new Move(b, b.getSquare(m.originRow, m.originCol), b
-					.getSquare(m.destRow, m.destCol), m.promoName));
+			Board board = m_game.getBoards()[move.m_boardIndex];
+			m_game.playMove(new Move(board, board.getSquare(move.m_originRow, move.m_originColumn), board.getSquare(
+					move.m_destinationRow, move.m_destinationColumn), move.m_promotionPieceName));
 			return true;
-		} catch (Exception e)
+		}
+		catch (Exception e)
 		{
 			return false;
 		}
@@ -105,14 +108,13 @@ public class AIAdapter
 	 */
 	public synchronized AIBoard[] getBoards()
 	{
-		if (g.isStaleLegalDests())
-		{
-			g.genLegalDests();
-		}
-		boards = new AIBoard[g.getBoards().length];
-		for (int i = 0; i < boards.length; i++)
-			boards[i] = new AIBoard(g.getBoards()[i]);
-		return boards;
+		if (m_game.isStaleLegalDests())
+			m_game.genLegalDests();
+
+		m_boards = new AIBoard[m_game.getBoards().length];
+		for (int i = 0; i < m_boards.length; i++)
+			m_boards[i] = new AIBoard(m_game.getBoards()[i]);
+		return m_boards;
 	}
 
 	/**
@@ -121,7 +123,6 @@ public class AIAdapter
 	 */
 	public class AIBoard
 	{
-
 		/**
 		 * Two dimensional Array of AISquares representing the AIBoard
 		 */
@@ -136,7 +137,7 @@ public class AIAdapter
 		/**
 		 * The max column for this AIBoard
 		 */
-		private int maxCol;
+		private int maxColumn;
 		/**
 		 * The max row for this AIBoard
 		 */
@@ -147,9 +148,9 @@ public class AIAdapter
 		 */
 		public AIBoard(Board b)
 		{
-			wraparound = b.isWraparound();
+			wraparound = b.isWrapAround();
 			squares = new AISquare[b.getMaxRow()][b.getMaxCol()];
-			maxCol = b.getMaxCol();
+			maxColumn = b.getMaxCol();
 			maxRow = b.getMaxRow();
 			for (int row = 1, col = 1; row <= b.getMaxRow(); row++)
 			{
@@ -157,8 +158,7 @@ public class AIAdapter
 				{
 					// Initialize the AISquares.
 					// ignore counting from zero.
-					squares[row - 1][col - 1] = new AISquare((row), (col), b
-							.getSquare(row, col).isHabitable(), null);
+					squares[row - 1][col - 1] = new AISquare((row), (col), b.getSquare(row, col).isHabitable(), null);
 				}
 			}
 			for (int row = 1, col = 1; row <= b.getMaxRow(); row++)
@@ -168,8 +168,7 @@ public class AIAdapter
 					// Initialize the AISquares.
 					// ignore counting from zero.
 					if (b.getSquare(row, col).getPiece() != null)
-						squares[row - 1][col - 1].setPiece(new AIPiece(b
-								.getSquare(row, col).getPiece(), this));
+						squares[row - 1][col - 1].setPiece(new AIPiece(b.getSquare(row, col).getPiece(), this));
 				}
 			}
 		}
@@ -188,7 +187,7 @@ public class AIAdapter
 		 */
 		public int maxCol()
 		{
-			return maxCol;
+			return maxColumn;
 		}
 
 		/**
@@ -351,10 +350,9 @@ public class AIAdapter
 		 * terms
 		 * @return The legal destinations of the piece in terms of AI Squares
 		 */
-		private synchronized List<AISquare> transformLegalDests(
-				List<Square> legalDests)
+		private synchronized List<AISquare> transformLegalDests(List<Square> legalDests)
 		{
-			List<AISquare> toReturn = new ArrayList<AISquare>();
+			List<AISquare> toReturn = Lists.newArrayList();
 			for (Square s : legalDests)
 				if (board.getSquare(s.getRow(), s.getCol()) != null)
 					toReturn.add(board.getSquare(s.getRow(), s.getCol()));

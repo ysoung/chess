@@ -1,181 +1,92 @@
 package rules;
 
-import java.io.Serializable;
-import java.lang.reflect.Method;
-import java.util.HashMap;
+import com.google.common.base.Preconditions;
 
 import logic.Game;
 import logic.Piece;
 
-/**
- * ObjectivePiece.java
- * 
- * Class to hold methods returning the objective of the game, if there is one.
- * 
- * @author Drew Hannay & Alisa Maas
- * 
- * CSCI 335, Wheaton College, Spring 2011 Phase 2 April 7, 2011
- */
-public class ObjectivePiece implements Serializable
+public enum ObjectivePiece
 {
+	CLASSIC,
+	NO_OBJECTIVE,
+	CUSTOM_OBJECTIVE;
 
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = 6945649584920313635L;
-
-	/**
-	 * The current game.
-	 */
-	private Game g;
-
-	/**
-	 * The name of the method to perform.
-	 */
-	private String name;
-	/**
-	 * The name of the objective piece.
-	 */
-	private String objectiveName;
-	/**
-	 * The method to perform.
-	 */
-	private transient Method doMethod;
-	/**
-	 * A hashmap for convenience.
-	 */
-	private static HashMap<String, Method> doMethods = new HashMap<String, Method>();
-	static
+	public ObjectivePiece setObjectivePieceName(String objectivePieceName)
 	{
-		try
+		Preconditions.checkState(this != CLASSIC);
+
+		m_objectivePieceName = objectivePieceName;
+		return this;
+	}
+
+	public Piece getObjectivePiece(boolean isBlack)
+	{
+		switch (this)
 		{
-			doMethods.put("classic", ObjectivePiece.class.getMethod(
-					"classicObjectivePiece", boolean.class));
-			doMethods.put("no objective", ObjectivePiece.class.getMethod(
-					"noObjectivePiece", boolean.class));
-			doMethods.put("custom objective", ObjectivePiece.class.getMethod(
-					"customObjectivePiece", boolean.class));
-		} catch (Exception e)
-		{
-			e.printStackTrace();
+		case CLASSIC:
+			return classicObjectivePiece(isBlack);
+		case CUSTOM_OBJECTIVE:
+			return customObjectivePiece(isBlack);
+		case NO_OBJECTIVE:
+		default:
+			return null;
 		}
 	}
 
-	/**
-	 * @param name The name of the method.
-	 * @param objectiveName The name of the objective piece.
-	 */
-	public ObjectivePiece(String name, String objectiveName)
+	public void setGame(Game game)
 	{
-		doMethod = doMethods.get(name);
-		this.name = name;
-		this.objectiveName = objectiveName;
+		m_game = game;
 	}
 
-	/**
-	 * In classic, the king is the objective piece.
-	 * 
-	 * @param isBlack Whether the piece is black
-	 * @return The objective piece on the same team.
-	 */
-	public Piece classicObjectivePiece(boolean isBlack)
+	public String getObjectivePieceName()
 	{
-		try
+		return m_objectivePieceName;
+	}
+
+	private Piece classicObjectivePiece(boolean isBlack)
+	{
+		if (isBlack)
 		{
-			if (isBlack)
+			for (Piece piece : m_game.getBlackTeam())
 			{
-				for (Piece p : g.getBlackTeam())
-					if (p.getName().equals("King"))
-						return p;
-
+				if (piece.getName().equals("King"))
+					return piece;
 			}
-			for (Piece p : g.getWhiteTeam())
-				if (p.getName().equals("King"))
-					return p;
-			return null;
-		} catch (Exception e)
-		{
-			e.printStackTrace();
-			return null;
 		}
-	}
-
-	/**
-	 * In this case, return the custom objective piece.
-	 * 
-	 * @param isBlack whether the piece is black
-	 * @return The corresponding objective piece.
-	 */
-	public Piece customObjectivePiece(boolean isBlack)
-	{
-		try
+		else
 		{
-			if (isBlack)
+			for (Piece piece : m_game.getWhiteTeam())
 			{
-				for (Piece p : g.getBlackTeam())
-					if (p.getName().equals(objectiveName))
-						return p;
+				if (piece.getName().equals("King"))
+					return piece;
 			}
-			for (Piece p : g.getWhiteTeam())
-				if (p.getName().equals(objectiveName))
-					return p;
-			return null;
-		} catch (Exception e)
-		{
-			e.printStackTrace();
-			return null;
 		}
-	}
 
-	/**
-	 * Perform the right method.
-	 * 
-	 * @param isBlack Is this piece black?
-	 * @return The objective piece.
-	 */
-	public Piece execute(boolean isBlack)
-	{
-		try
-		{
-			if (doMethod == null)
-			{
-				doMethod = doMethods.get(name);
-			}
-			return (Piece) doMethod.invoke(this, isBlack);
-		} catch (Exception e)
-		{
-			e.printStackTrace();
-		}
 		return null;
 	}
 
-	/**
-	 * Return null in the case that there is no objective.
-	 * 
-	 * @param isBlack Whether this piece is black.
-	 * @return null in this case.
-	 */
-	public Piece noObjectivePiece(boolean isBlack)
+	private Piece customObjectivePiece(boolean isBlack)
 	{
+		if (isBlack)
+		{
+			for (Piece piece : m_game.getBlackTeam())
+			{
+				if (piece.getName().equals(m_objectivePieceName))
+					return piece;
+			}
+		}
+		else
+		{
+			for (Piece piece : m_game.getWhiteTeam())
+			{
+				if (piece.getName().equals(m_objectivePieceName))
+					return piece;
+			}
+		}
+
 		return null;
 	}
 
-	/**
-	 * @param g Setter for g.
-	 */
-	public void setGame(Game g)
-	{
-		this.g = g;
-	}
-
-	/**
-	 * Getter for objective name
-	 * 
-	 * @return The name of the objective.
-	 */
-	public String getObjectiveName()
-	{
-		return objectiveName;
-	}
-
+	private Game m_game;
+	private String m_objectivePieceName;
 }

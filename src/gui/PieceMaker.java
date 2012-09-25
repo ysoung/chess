@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
@@ -19,535 +20,451 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.filechooser.FileFilter;
 
-import logic.Builder;
 import logic.PieceBuilder;
+import utility.GUIUtility;
+import utility.ImageUtility;
 
-/**
- * @author John mcCormick Class to make new pieces for new variants
- */
 public class PieceMaker extends JPanel
 {
-
-	/**
-	 * Because it told me to
-	 */
-	private static final long serialVersionUID = -6530771731937840358L;
-	/**
-	 * Builder for the new variant
-	 */
-	private Builder b;
-	/**
-	 * New Piece builder for the new.... piece
-	 */
-	private PieceBuilder builder;
-	/**
-	 * Boolean to see if we are making a knight piece
-	 */
-	private boolean knightLike = false;
-
-	/**
-	 * Constructor for piece making window
-	 * 
-	 * @param b reference to the builder
-	 */
-	public PieceMaker(Builder b)
+	public PieceMaker(CustomSetupMenu customSetupMenu, JFrame optionsFrame)
 	{
-		this.b = b;
+		m_frame = optionsFrame;
+		m_frame.setVisible(true);
+		m_frame.add(this);
+		m_frame.setVisible(true);
+		m_frame.setSize(400, 600);
+		m_frame.setLocationRelativeTo(Driver.getInstance());
 		PieceBuilder.initPieceTypes();
-		initComponents();
+		initGUIComponents(customSetupMenu);
 	}
 
-	/**
-	 * Method to set up the piece making window.
-	 */
-	public void initComponents()
+	private void initGUIComponents(final CustomSetupMenu customSetupMenu)
 	{
-		// Create a new PieceBuilder.
-		builder = new PieceBuilder();
+		m_builder = new PieceBuilder();
 
-		// Create the pop up and set the size, location and layout.
 		setSize(550, 875);
 		setLayout(new GridBagLayout());
-		GridBagConstraints c = new GridBagConstraints();
+		GridBagConstraints constraints = new GridBagConstraints();
 
-		JPanel piecePanel = new JPanel();
-		piecePanel.setLayout(new GridBagLayout());
-		piecePanel.setBorder(BorderFactory.createTitledBorder("New Piece"));
+		JPanel pieceCreationPanel = new JPanel();
+		pieceCreationPanel.setLayout(new GridBagLayout());
+		pieceCreationPanel.setBorder(BorderFactory.createTitledBorder("New Piece"));
 
-		// Add a JLabel and JTextField for the Piece name.
 		JPanel namePanel = new JPanel();
 		namePanel.setLayout(new FlowLayout());
 
 		namePanel.add(new JLabel("Piece Name:"));
-		final JTextField name = new JTextField(15);
-		name.setToolTipText("Enter the name of the new piece here");
-		namePanel.add(name);
+		final JTextField pieceNameField = new JTextField(15);
+		pieceNameField.setToolTipText("Enter the name of the new piece here");
+		GUIUtility.requestFocus(pieceNameField);
+		namePanel.add(pieceNameField);
 
-		c.gridx = 0;
-		c.gridy = 0;
-		piecePanel.add(namePanel, c);
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		pieceCreationPanel.add(namePanel, constraints);
 
-		final ImageIcon temp = new ImageIcon("./images/WhiteSquare.gif");
-		temp.setImage(temp.getImage().getScaledInstance(48, 48,
-				Image.SCALE_SMOOTH));
+		final ImageIcon blankSquare = new ImageIcon("./images/WhiteSquare.gif");
+		blankSquare.setImage(blankSquare.getImage().getScaledInstance(48, 48, Image.SCALE_SMOOTH));
 		final JPanel lightIconPanel = new JPanel();
 		lightIconPanel.setLayout(new FlowLayout());
-		final JButton lightIconButton = new JButton();
-		lightIconButton.setSize(48, 48);
-		lightIconButton.setIcon(temp);
+		final JLabel lightIconLabel = new JLabel();
+		lightIconLabel.setSize(48, 48);
+		lightIconLabel.setIcon(blankSquare);
 
-		// Add JButtons for choosing the images for the new type.
-		final JButton chooseLightImage = new JButton(
-				"Choose image for light piece");
-		chooseLightImage
-				.setToolTipText("Click me to choose an Light Colored Icon for this piece");
-		chooseLightImage.addActionListener(new ActionListener()
-		{
+		final JButton lightImageButton = new JButton("Choose image for light piece");
+		lightImageButton.setToolTipText("Click me to choose an Light Colored Icon for this piece");
+		lightImageButton.addActionListener(new ImageButtonActionListener(lightIconLabel, false));
+		lightIconPanel.add(lightImageButton);
+		lightIconPanel.add(lightIconLabel);
 
-			@Override
-			public void actionPerformed(ActionEvent arg0)
-			{
-				// Create the JFileChooser and add image for the new piece
-				final JFileChooser fc = new JFileChooser("~/"); // default
-																// directory is
-																// in the images
-																// folder
-				int returnVal = fc.showOpenDialog(null);
-				if (returnVal == JFileChooser.APPROVE_OPTION)
-				{
-					ImageIcon icon = makeIcon(fc, builder);
-					lightIconButton.setIcon(icon); // Adds icon to button
-					builder.setLightImage(icon);
-				}
-			}
-		});
-		lightIconPanel.add(chooseLightImage);
-		lightIconPanel.add(lightIconButton);
-
-		builder.setLightImage(temp);
-
-		c.gridx = 0;
-		c.gridy = 3;
-		piecePanel.add(lightIconPanel, c);
+		constraints.gridx = 0;
+		constraints.gridy = 3;
+		pieceCreationPanel.add(lightIconPanel, constraints);
 
 		final JPanel darkIconPanel = new JPanel();
 		darkIconPanel.setLayout(new FlowLayout());
-		final JButton darkIconButton = new JButton();
-		darkIconButton.setSize(48, 48);
-		darkIconButton.setIcon(temp);
+		final JLabel darkIconLabel = new JLabel();
+		darkIconLabel.setSize(48, 48);
+		darkIconLabel.setIcon(blankSquare);
 
-		final JButton chooseDarkImage = new JButton(
-				"Choose image for dark piece");
-		chooseDarkImage
-				.setToolTipText("Click me to choose an Dark Colored Icon for this piece");
-		chooseDarkImage.addActionListener(new ActionListener()
-		{
+		final JButton darkImageButton = new JButton("Choose image for dark piece");
+		darkImageButton.setToolTipText("Click me to choose an Dark Colored Icon for this piece");
+		darkImageButton.addActionListener(new ImageButtonActionListener(darkIconLabel, true));
+		darkIconPanel.add(darkImageButton);
+		darkIconPanel.add(darkIconLabel);
 
-			@Override
-			public void actionPerformed(ActionEvent arg0)
-			{
-				// Create the JFileChooser and add image for the new piece
-				final JFileChooser fc = new JFileChooser("~/"); // default
-																// directory is
-																// in the images
-																// folder
-				int returnVal = fc.showOpenDialog(null);
-				if (returnVal == JFileChooser.APPROVE_OPTION)
-				{
-					ImageIcon icon = makeIcon(fc, builder);
-					darkIconButton.setIcon(icon); // Adds icon to button
-					builder.setDarkImage(icon);
-				}
-			}
-		});
-		darkIconPanel.add(chooseDarkImage);
-		darkIconPanel.add(darkIconButton);
+		constraints.gridx = 0;
+		constraints.gridy = 2;
+		pieceCreationPanel.add(darkIconPanel, constraints);
 
-		builder.setDarkImage(temp);
-
-		c.gridx = 0;
-		c.gridy = 2;
-		piecePanel.add(darkIconPanel, c);
-
-		// Add components for collecting the directions of movement.
-
-		final String[] directions = new String[] { "North", "Northeast",
-				"East", "Southeast", "South", "Southwest", "West", "Northwest" };
-		final JComboBox dropdown = new JComboBox(directions);
+		final JComboBox dropdown = new JComboBox(DIRECTIONS);
 		dropdown.setToolTipText("This dropdown has all of the valid directions you can still set movement for");
 
-		// Collect max distance of movement, -1 for infinity.
-		final JTextField dist = new JTextField(3);
-		dist.setToolTipText("Greatest amount of spaces piece can travel in chosen direction");
+		final JTextField northField = new JTextField(4);
+		northField.setToolTipText("North");
+		northField.setText("0");
+		final JTextField northEastField = new JTextField(4);
+		northEastField.setToolTipText("Northeast");
+		northEastField.setText("0");
+		final JTextField northWestField = new JTextField(4);
+		northWestField.setToolTipText("Northwest");
+		northWestField.setText("0");
+		final JTextField eastField = new JTextField(4);
+		eastField.setToolTipText("East");
+		eastField.setText("0");
+		final JTextField southEastField = new JTextField(4);
+		southEastField.setToolTipText("Southeast");
+		southEastField.setText("0");
+		final JTextField southField = new JTextField(4);
+		southField.setToolTipText("South");
+		southField.setText("0");
+		final JTextField southWestField = new JTextField(4);
+		southWestField.setToolTipText("Southwest");
+		southWestField.setText("0");
+		final JTextField westField = new JTextField(4);
+		westField.setToolTipText("West");
+		westField.setText("0");
 
-		final JTextField knight = new JTextField(2);
-		knight.setToolTipText("Enter the knight-like directions you would like");
-		knight.setEnabled(false);
+		JLabel movementPictureHolder = new JLabel(GUIUtility.createImageIcon(130, 130, "/movement_directions.png"));
 
-		final JTextField knightSecond = new JTextField(2);
-		knightSecond
-				.setToolTipText("Enter the other direction for the knight-like piece");
-		knightSecond.setEnabled(false);
+		JPanel movement = new JPanel();
+		movement.setLayout(new GridBagLayout());
 
-		final JCheckBox knightOn = new JCheckBox("Knight-like Movements", false);
-		knightOn.setToolTipText("Press me to turn on Knight-Like Movements for this piece");
-		knightOn.addActionListener(new ActionListener()
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		constraints.weightx = 1;
+		constraints.anchor = GridBagConstraints.EAST;
+		movement.add(northWestField, constraints);
+		constraints.gridx = 1;
+		constraints.anchor = GridBagConstraints.CENTER;
+		movement.add(northField, constraints);
+		constraints.gridx = 2;
+		constraints.anchor = GridBagConstraints.WEST;
+		movement.add(northEastField, constraints);
+		constraints.gridx = 0;
+		constraints.gridy = 1;
+		constraints.anchor = GridBagConstraints.EAST;
+		movement.add(westField, constraints);
+		constraints.gridx = 1;
+		constraints.anchor = GridBagConstraints.CENTER;
+		movement.add(movementPictureHolder, constraints);
+		constraints.gridx = 2;
+		constraints.anchor = GridBagConstraints.WEST;
+		movement.add(eastField, constraints);
+		constraints.gridx = 0;
+		constraints.gridy = 2;
+		constraints.anchor = GridBagConstraints.EAST;
+		movement.add(southWestField, constraints);
+		constraints.gridx = 1;
+		constraints.anchor = GridBagConstraints.CENTER;
+		movement.add(southField, constraints);
+		constraints.gridx = 2;
+		constraints.anchor = GridBagConstraints.WEST;
+		movement.add(southEastField, constraints);
+
+		final JTextField distanceField = new JTextField(3);
+		distanceField.setToolTipText("Greatest amount of spaces piece can travel in chosen direction");
+
+		final JTextField firstKnightDirectionField = new JTextField(2);
+		firstKnightDirectionField.setToolTipText("Enter the knight-like directions you would like");
+		firstKnightDirectionField.setEnabled(false);
+
+		final JTextField secondKnightDirectionField = new JTextField(2);
+		secondKnightDirectionField.setToolTipText("Enter the other direction for the knight-like piece");
+		secondKnightDirectionField.setEnabled(false);
+
+		final JCheckBox knightMovementsCheckBox = new JCheckBox("Knight-like Movements", false);
+		knightMovementsCheckBox.setToolTipText("Press me to turn on Knight-Like Movements for this piece");
+		knightMovementsCheckBox.addActionListener(new ActionListener()
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent arg0)
+			public void actionPerformed(ActionEvent event)
 			{
-				knightLike = !knightLike;
-				if (knightLike)
-				{
-					knight.setEnabled(true);
-					knightSecond.setEnabled(true);
-				} else
-				{
-					knight.setEnabled(false);
-					knightSecond.setEnabled(false);
-				}
+				m_isKnightLikePiece = !m_isKnightLikePiece;
+				firstKnightDirectionField.setEnabled(m_isKnightLikePiece);
+				secondKnightDirectionField.setEnabled(m_isKnightLikePiece);
 			}
 		});
 
-		final JCheckBox leaper = new JCheckBox("Can jump other Pieces", false);
-		leaper.setToolTipText("Press me to allow this piece to jump others");
+		final JCheckBox leaperCheckBox = new JCheckBox("Can jump other Pieces", false);
+		leaperCheckBox.setToolTipText("Press me to allow this piece to jump others");
 
-		final JPanel knightMoving = new JPanel();
-		knightMoving
-				.setToolTipText("Use me to set up Knight Like Movements. See Variant Help for instructions");
-		knightMoving.setLayout(new FlowLayout());
-		knightMoving.add(knight);
-		knightMoving.add(new JLabel("x"));
-		knightMoving.add(knightSecond);
+		final JPanel knightMovementPanel = new JPanel();
+		knightMovementPanel.setToolTipText("Use me to set up Knight Like Movements. See Variant Help for instructions");
+		knightMovementPanel.setLayout(new FlowLayout());
+		knightMovementPanel.add(firstKnightDirectionField);
+		knightMovementPanel.add(new JLabel("x"));
+		knightMovementPanel.add(secondKnightDirectionField);
 
-		// Create button and add ActionListener for adding movement directions
-		// to a piece
-		final JButton addInstruction = new JButton(
-				"Add Movement Directions to this Piece");
-		addInstruction
-				.setToolTipText("Pressing this will add movement direction and max distance in that direction.");
-		addInstruction.addActionListener(new ActionListener()
+		JPanel movementPanel = new JPanel();
+		movementPanel.setLayout(new BoxLayout(movementPanel, BoxLayout.Y_AXIS));
+		movementPanel.setLayout(new GridBagLayout());
+
+		constraints.insets = new Insets(5, 0, 5, 0);
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		constraints.anchor = GridBagConstraints.CENTER;
+		movementPanel.add(new JLabel("<html><u>Normal Movement Setup:</u></br></html>"), constraints);
+		constraints.insets = new Insets(5, 0, 0, 0);
+		constraints.gridx = 0;
+		constraints.gridy = 1;
+		constraints.gridwidth = 2;
+		movementPanel.add(movement, constraints);
+		constraints.insets = new Insets(5, 0, 0, 0);
+		constraints.gridx = 0;
+		constraints.gridy = 5;
+		movementPanel.add(leaperCheckBox, constraints);
+		constraints.insets = new Insets(5, 0, 0, 0);
+		constraints.gridx = 0;
+		constraints.gridy = 6;
+		movementPanel.add(knightMovementsCheckBox, constraints);
+		constraints.insets = new Insets(5, 0, 5, 0);
+		constraints.gridx = 0;
+		constraints.gridy = 7;
+		movementPanel.add(new JLabel("<html><u>Knight-like Movement Directions:</u></br></html>"), constraints);
+		constraints.gridx = 0;
+		constraints.gridy = 8;
+		movementPanel.add(knightMovementPanel, constraints);
+
+		constraints.gridx = 0;
+		constraints.gridy = 5;
+		pieceCreationPanel.add(movementPanel, constraints);
+
+		final JButton savePieceButton = new JButton("Save Piece");
+		savePieceButton.setToolTipText("Press me to save this Piece type");
+		savePieceButton.addActionListener(new ActionListener()
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent e)
+			public void actionPerformed(ActionEvent event)
 			{
-				if (isIntDist())
-				{// Make sure their number is an int.
-					if (dropdown.getSelectedItem() != null)
-					{// Make sure there's directions left in the drop down.
-						// Add the move to the piece type and remove that
-						// direction from the drop down.
-						builder.addMove(stringToChar((String) dropdown
-								.getSelectedItem()), Integer.parseInt(dist
-								.getText()));
-						dropdown.removeItemAt(dropdown.getSelectedIndex());
-						dist.setText(""); // Clear their int distance.
-
-					}
-				}
-			}
-
-			/**
-			 * Determine if the user entered a valid integer.
-			 * 
-			 * @return If the text is a valid integer
-			 */
-			private boolean isIntDist()
-			{
-				try
+				String pieceName = pieceNameField.getText().trim();
+				if (pieceName.isEmpty() || PieceBuilder.isPieceType(pieceNameField.getText()))
 				{
-					Integer.parseInt(dist.getText());
-					return true;
-				} catch (Exception e)
-				{
-					return false;
-				}
-			}
-
-			/**
-			 * Translate a direction string to it's corresponding char.
-			 * 
-			 * @param s The string to translate
-			 * @return The char corresponding to the given String.
-			 */
-			private char stringToChar(String s)
-			{
-				// TODO Can this be any better?
-				if (s.equals("North"))
-					return 'N';
-				if (s.equals("South"))
-					return 'S';
-				if (s.equals("East"))
-					return 'E';
-				if (s.equals("West"))
-					return 'W';
-				if (s.equals("Northeast"))
-					return 'R';
-				if (s.equals("Northwest"))
-					return 'L';
-				if (s.equals("Southeast"))
-					return 'r';
-				else
-					return 'l';
-			}
-		});
-
-		c.gridx = 0;
-		c.gridy = 4;
-		piecePanel.add(addInstruction, c);
-
-		// Setting up a panel handle movement instructions
-		JPanel movementSetup = new JPanel();
-		movementSetup.setLayout(new BoxLayout(movementSetup, BoxLayout.Y_AXIS));
-		movementSetup.setLayout(new GridBagLayout());
-
-		// Adds options and labels for setting up movement for the new piece
-		c.insets = new Insets(5, 0, 5, 0);
-		c.gridx = 0;
-		c.gridy = 0;
-		movementSetup.add(new JLabel(
-				"<html><u>Normal Movement Setup:</u></br></html>"), c);
-		c.insets = new Insets(5, 0, 0, 0);
-		c.gridx = 0;
-		c.gridy = 1;
-		movementSetup.add(new JLabel("Direction of Movement: "), c);
-		c.insets = new Insets(5, 0, 0, 0);
-		c.gridx = 1;
-		c.gridy = 1;
-		movementSetup.add(dropdown, c);
-		c.insets = new Insets(5, 0, 0, 0);
-		c.gridx = 0;
-		c.gridy = 2;
-		movementSetup.add(new JLabel("Max Distance of Movement: "), c);
-		c.insets = new Insets(5, 0, 0, 0);
-		c.gridx = 1;
-		c.gridy = 2;
-		movementSetup.add(dist, c);
-		c.insets = new Insets(5, 0, 0, 0);
-		c.gridx = 0;
-		c.gridy = 3;
-		c.gridwidth = 3;
-		movementSetup.add(addInstruction, c);
-		c.insets = new Insets(5, 0, 0, 0);
-		c.gridx = 0;
-		c.gridy = 5;
-		movementSetup.add(leaper, c);
-		c.insets = new Insets(5, 0, 0, 0);
-		c.gridx = 0;
-		c.gridy = 6;
-		movementSetup.add(knightOn, c);
-		c.insets = new Insets(5, 0, 5, 0);
-		c.gridx = 0;
-		c.gridy = 7;
-		movementSetup
-				.add(new JLabel(
-						"<html><u>Knight-like Movement Directions:</u></br></html>"),
-						c);
-		c.gridx = 0;
-		c.gridy = 8;
-		movementSetup.add(knightMoving, c);
-
-		c.gridx = 0;
-		c.gridy = 5;
-		piecePanel.add(movementSetup, c);
-
-		// Create button and add ActionListener
-		final JButton done = new JButton("Save Piece Type");
-		done.setToolTipText("Press me to save this Piece type");
-		done.addActionListener(new ActionListener()
-		{
-
-			@Override
-			public void actionPerformed(ActionEvent arg0)
-			{
-
-				if (name.getText() == ""
-						|| PieceBuilder.isPieceType(name.getText()))
-				{ // Make sure the name is valid.
-					JOptionPane.showMessageDialog(null,
-							"Please enter a unique piece name.",
-							"Invalid Piece Name",
-							JOptionPane.INFORMATION_MESSAGE);
+					JOptionPane.showMessageDialog(Driver.getInstance(), "Please enter a unique piece name.", "Invalid Piece Name",
+							JOptionPane.PLAIN_MESSAGE);
 					return;
 				}
 
-				if (knight.isEnabled())
+				if (isIntegerDistance(northField) && isIntegerDistance(northEastField) && isIntegerDistance(northWestField)
+						&& isIntegerDistance(eastField) && isIntegerDistance(westField) && isIntegerDistance(southField)
+						&& isIntegerDistance(southEastField) && isIntegerDistance(southWestField))
 				{
-					if (isIntKnights())
+					m_builder.addMove('N', Integer.parseInt(northField.getText()));
+					m_builder.addMove('R', Integer.parseInt(northEastField.getText()));
+					m_builder.addMove('L', Integer.parseInt(northWestField.getText()));
+					m_builder.addMove('E', Integer.parseInt(eastField.getText()));
+					m_builder.addMove('W', Integer.parseInt(westField.getText()));
+					m_builder.addMove('S', Integer.parseInt(southField.getText()));
+					m_builder.addMove('r', Integer.parseInt(southEastField.getText()));
+					m_builder.addMove('l', Integer.parseInt(southWestField.getText()));
+				}
+
+				if (firstKnightDirectionField.isEnabled())
+				{
+					if (isIntegerDistance(firstKnightDirectionField) && isIntegerDistance(secondKnightDirectionField))
 					{
-						builder.addMove('x', Integer.parseInt(knight.getText())); // Knight
-																					// movements
-																					// stored
-																					// in
-																					// builder.
-						builder.addMove('y',
-								Integer.parseInt(knightSecond.getText()));
+						m_builder.addMove('x', Integer.parseInt(firstKnightDirectionField.getText()));
+						m_builder.addMove('y', Integer.parseInt(secondKnightDirectionField.getText()));
 					}
 				}
-				builder.setName(name.getText());// Set the name in the
-												// PieceBuilder
-				PieceBuilder.savePieceType(builder);// Save the piece type in
-													// the PieceBuilder class.
 
-				// Refreshing the window
-				builder = new PieceBuilder();
-				name.setText("");
-				lightIconButton.setIcon(temp);
-				darkIconButton.setIcon(temp);
-				dist.setText("");
-				leaper.setSelected(false);
-				knightOn.setSelected(false);
-				knight.setText("");
-				knight.setEnabled(false);
-				knightSecond.setText("");
-				knightSecond.setEnabled(false);
-				knightLike = false;
-				dropdown.removeAllItems();
-				for (int i = 0; i < directions.length; i++)
-					dropdown.addItem(directions[i]);
-
-			}
-
-			/**
-			 * Determine if the user entered a valid integer.
-			 * 
-			 * @return If the text is a valid integer
-			 */
-			private boolean isIntKnights()
-			{
 				try
 				{
-					Integer.parseInt(knight.getText());
-					Integer.parseInt(knightSecond.getText());
-					return true;
-				} catch (Exception e)
+					ImageUtility.writeLightImage(pieceName, m_lightImage);
+					ImageUtility.writeDarkImage(pieceName, m_darkImage);
+				}
+				catch (Exception e)
 				{
-					return false;
+					JOptionPane.showMessageDialog(Driver.getInstance(), "Cannot write image files..did you remember to set both images?", "Image Error",
+							JOptionPane.PLAIN_MESSAGE);
+					return;
+				}
+
+				m_builder.setName(pieceName);
+				PieceBuilder.savePieceType(m_builder);
+
+				m_builder = new PieceBuilder();
+				pieceNameField.setText("");
+				lightIconLabel.setIcon(blankSquare);
+				darkIconLabel.setIcon(blankSquare);
+				distanceField.setText("");
+				leaperCheckBox.setSelected(false);
+				knightMovementsCheckBox.setSelected(false);
+				firstKnightDirectionField.setText("");
+				firstKnightDirectionField.setEnabled(false);
+				secondKnightDirectionField.setText("");
+				secondKnightDirectionField.setEnabled(false);
+				m_isKnightLikePiece = false;
+				dropdown.removeAllItems();
+				for (int i = 0; i < DIRECTIONS.length; i++)
+					dropdown.addItem(DIRECTIONS[i]);
+			}
+		});
+
+		final JButton doneButton = new JButton("Done");
+		doneButton.setToolTipText("Press me when you have made all of your pieces");
+		doneButton.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent event)
+			{
+				if (pieceNameField.getText().trim().isEmpty())
+				{
+					customSetupMenu.setupPiecesList();
+					PieceMaker.this.removeAll();
+					m_frame.setVisible(false);
+				}
+				else
+				{
+					switch (JOptionPane.showConfirmDialog(Driver.getInstance(),
+							"If you continue the piece you are working on will not be saved. Continue?", "Piece Maker",
+							JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE))
+					{
+					case JOptionPane.YES_OPTION:
+						customSetupMenu.setupPiecesList();
+						PieceMaker.this.removeAll();
+						m_frame.setVisible(false);
+						break;
+					case JOptionPane.NO_OPTION:
+						break;
+					}
 				}
 			}
 		});
 
-		BufferedImage helpMe = null;
+		constraints.gridx = 0;
+		constraints.gridy = 7;
+		pieceCreationPanel.add(savePieceButton, constraints);
+
+		constraints.gridx = 0;
+		constraints.gridy = 0;
+		add(pieceCreationPanel, constraints);
+
+		constraints.gridx = 0;
+		constraints.gridy = 1;
+		add(doneButton, constraints);
+
+		m_frame.pack();
+	}
+
+	private boolean isIntegerDistance(JTextField textField)
+	{
 		try
 		{
-			helpMe = ImageIO.read(new File("./images/piece_help.png")); // Gets
-																		// it
-																		// from
-																		// the
-																		// image
-																		// folder
-		} catch (IOException e1)
-		{
-			e1.printStackTrace();
+			Integer.parseInt(textField.getText());
+			return true;
 		}
-		// Makes the image an icon and ands it to a JLabel
-		final ImageIcon picture = new ImageIcon(helpMe);
-		picture.setImage(picture.getImage().getScaledInstance(700, 500,
-				Image.SCALE_SMOOTH));
-
-		final JButton help = new JButton("Help");
-		help.setToolTipText("Press me for help in setting up a piece type");
-		help.addActionListener(new ActionListener()
+		catch (Exception e)
 		{
-
-			@Override
-			public void actionPerformed(ActionEvent arg0)
-			{
-				JOptionPane.showMessageDialog(null, "", "Piece Making Help", 0,
-						picture);
-			}
-
-		});
-
-		final JButton next = new JButton("Next");
-		next.setToolTipText("Press me when you have made all of your pieces");
-		next.addActionListener(new ActionListener()
-		{
-			@Override
-			public void actionPerformed(ActionEvent e)
-			{
-				if (name.getText().equals(""))
-				{
-					Driver.getInstance().setPanel(new ObjectiveMaker(b));
-				} else
-				{
-					int answer = JOptionPane
-							.showConfirmDialog(
-									null,
-									"If you continue the piece you are working on will not be saved. Continue?",
-									"Piece Maker", JOptionPane.YES_NO_OPTION);
-					if (answer == 0)
-						Driver.getInstance().setPanel(new ObjectiveMaker(b));
-				}
-			}
-		});
-
-		// Create button and add ActionListener
-		final JButton cancel = new JButton("Back");
-		cancel.setToolTipText("Press me to return to board setup window");
-		cancel.addActionListener(new ActionListener()
-		{
-
-			@Override
-			public void actionPerformed(ActionEvent arg0)
-			{
-				Driver.getInstance().setPanel(new BoardCustomMenu(b));
-			}
-		});
-
-		JPanel buttons = new JPanel();
-		buttons.setLayout(new FlowLayout());
-		buttons.add(help);
-		buttons.add(done);
-
-		c.gridx = 0;
-		c.gridy = 7;
-		piecePanel.add(buttons, c);
-
-		c.gridx = 0;
-		c.gridy = 0;
-		add(piecePanel, c);
-
-		JPanel mainButtons = new JPanel();
-		mainButtons.setLayout(new FlowLayout());
-		c.gridx = 0;
-		c.gridy = 1;
-		mainButtons.add(cancel, c);
-		c.gridx = 1;
-		c.gridy = 1;
-		mainButtons.add(next, c);
-		c.gridx = 0;
-		c.gridy = 1;
-		add(mainButtons, c);
-
+			JOptionPane.showMessageDialog(Driver.getInstance(), "All movement distances must be whole numbers. Please enter a number in the "
+					+ textField.getToolTipText() + " direction box.", "Error", JOptionPane.PLAIN_MESSAGE);
+			return false;
+		}
 	}
 
-	/**
-	 * Makes the icon for the for the new piece
-	 * 
-	 * @param fc The file chooser to select the piece
-	 * @param builder The builder that is building the piece
-	 * @return the icon to add to the button displaying the icon for the new
-	 * piece
-	 */
-	public ImageIcon makeIcon(JFileChooser fc, PieceBuilder builder)
+	private final class ImageButtonActionListener implements ActionListener
 	{
-		// If a valid File was chosen, make an ImageIcon from the file path.
-		String file = fc.getSelectedFile().getAbsolutePath();
+		public ImageButtonActionListener(JLabel imageLabel, boolean isDarkImage)
+		{
+			m_imageLabel = imageLabel;
+			m_isDarkImage = isDarkImage;
+		}
 
-		// default center section
-		ImageIcon icon = new ImageIcon(file);
-		// Scale the image to 48x48.
-		icon.setImage(icon.getImage().getScaledInstance(48, 48,
-				Image.SCALE_SMOOTH));
-		return icon;
+		@Override
+		public void actionPerformed(ActionEvent event)
+		{
+			Object[] options = new String[] { "Browse My Computer", "Image from Internet", "Cancel" };
+
+			switch (JOptionPane.showOptionDialog(Driver.getInstance(), "Where would you like to get the image from?", "Choose Image",
+					JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]))
+			{
+			case JOptionPane.YES_OPTION:
+				JFileChooser fileChooser = new JFileChooser("~/");
+				fileChooser.setFileFilter(new FileFilter()
+				{
+					@Override
+					public String getDescription()
+					{
+						return "PNG Files";
+					}
+					
+					@Override
+					public boolean accept(File f)
+					{
+						if (f.isDirectory() || f.getName().endsWith(".png"))
+                            return true;
+						else
+							return false;
+					}
+				});
+
+				if (fileChooser.showOpenDialog(Driver.getInstance()) == JFileChooser.APPROVE_OPTION)
+				{
+					try
+					{
+						if (m_isDarkImage)
+						{
+							m_darkImage = ImageIO.read(new File(fileChooser.toString()));
+							m_imageLabel.setIcon(new ImageIcon(m_darkImage.getScaledInstance(48, 48, Image.SCALE_SMOOTH)));
+						}
+						else
+						{
+							m_lightImage = ImageIO.read(new File(fileChooser.toString()));
+							m_imageLabel.setIcon(new ImageIcon(m_lightImage.getScaledInstance(48, 48, Image.SCALE_SMOOTH)));
+						}
+					}
+					catch (IOException e)
+					{
+						// TODO we should show the user an error message if this fails
+						e.printStackTrace();
+					}
+				}
+				break;
+			case JOptionPane.NO_OPTION:
+				String url = JOptionPane.showInputDialog(Driver.getInstance(), "Enter the URL of the image:", "Input URL",
+						JOptionPane.PLAIN_MESSAGE);
+				try
+				{
+					if (m_isDarkImage)
+					{
+						m_darkImage = ImageIO.read(new URL(url));
+						m_imageLabel.setIcon(new ImageIcon(m_darkImage.getScaledInstance(48, 48, Image.SCALE_SMOOTH)));
+					}
+					else
+					{
+						m_lightImage = ImageIO.read(new URL(url));
+						m_imageLabel.setIcon(new ImageIcon(m_lightImage.getScaledInstance(48, 48, Image.SCALE_SMOOTH)));
+					}
+				}
+				catch (Exception e)
+				{
+					e.printStackTrace();
+				}
+				break;
+			case JOptionPane.CANCEL_OPTION:
+				break;
+			}
+		}
+
+		private final boolean m_isDarkImage;
+
+		private JLabel m_imageLabel;
 	}
 
+	private static final long serialVersionUID = -6530771731937840358L;
+	private static final String[] DIRECTIONS = new String[] { "North", "Northeast", "East", "Southeast", "South", "Southwest", "West",
+			"Northwest" };
+
+	private PieceBuilder m_builder;
+	private boolean m_isKnightLikePiece;
+	private BufferedImage m_lightImage;
+	private BufferedImage m_darkImage;
+	private JFrame m_frame;
 }

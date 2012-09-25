@@ -3,12 +3,16 @@ package logic;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import utility.FileUtility;
+
+import com.google.common.collect.Maps;
 
 /**
  * AlgebraicConverter.java Class to convert Move objects to Algebraic Chess
@@ -29,11 +33,8 @@ public final class AlgebraicConverter
 	 * HashMap to move from the char representation of a Class to the actual
 	 * Class
 	 */
-	private static HashMap<Character, String> map = new HashMap<Character, String>();
+	private static Map<Character, String> map = Maps.newHashMap();
 
-	/**
-	 * Static initializer to build the HashMap
-	 */
 	static
 	{
 		map.put('B', "Bishop");
@@ -68,15 +69,15 @@ public final class AlgebraicConverter
 		result = getPattern().matcher(s);
 		if (result.find())
 		{
-			if (result.group(1).equals("O-O-O")
-					|| result.group(1).equals("0-0-0"))
+			if (result.group(1).equals("O-O-O") || result.group(1).equals("0-0-0"))
 			{
 				move = new Move(board, Move.CASTLE_QUEEN_SIDE);
-			} else if (result.group(1).equals("O-O")
-					|| result.group(1).equals("0-0"))
+			}
+			else if (result.group(1).equals("O-O") || result.group(1).equals("0-0"))
 			{
 				move = new Move(board, Move.CASTLE_KING_SIDE);
-			} else
+			}
+			else
 			{
 				if (result.group(2) != null)
 				{
@@ -85,8 +86,7 @@ public final class AlgebraicConverter
 
 				if (result.group(3) != null)
 				{
-					origCol = columns.indexOf((result.group(3).charAt(0) + "")
-							.toLowerCase());
+					origCol = columns.indexOf((result.group(3).charAt(0) + "").toLowerCase());
 				}
 
 				if (result.group(4) != null)
@@ -94,10 +94,8 @@ public final class AlgebraicConverter
 					origRow = Integer.parseInt(result.group(4).charAt(0) + "");
 				}
 
-				dest = board.getSquare(Integer.parseInt(result.group(7).charAt(
-						0)
-						+ ""), columns.indexOf((result.group(6).charAt(0) + "")
-						.toLowerCase()));
+				dest = board.getSquare(Integer.parseInt(result.group(7).charAt(0) + ""),
+						columns.indexOf((result.group(6).charAt(0) + "").toLowerCase()));
 
 				if (origCol < 1 || origRow < 1)
 				{
@@ -105,23 +103,21 @@ public final class AlgebraicConverter
 					{
 						pieceKlass = "Pawn";
 					}
-					orig = board.getOriginSquare(pieceKlass, origCol, origRow,
-							dest);
-				} else
+					orig = board.getOriginSquare(pieceKlass, origCol, origRow, dest);
+				}
+				else
 				{
 					orig = board.getSquare(origRow, origCol);
 				}
 
 				if (result.group(8) != null)
 				{ // promotion
-					if (result.group(8).contains("=")
-							|| result.group(8).contains("("))
+					if (result.group(8).contains("=") || result.group(8).contains("("))
 					{
-						promo = map.get(result.group(8).charAt(1)); // 0 is
-						// '='
-						// or
-						// '('
-					} else
+						promo = map.get(result.group(8).charAt(1)); // 0 is '='
+																	// or '('
+					}
+					else
 					{
 						promo = map.get(result.group(8).charAt(0));
 					}
@@ -129,7 +125,8 @@ public final class AlgebraicConverter
 				if (promo == null)
 				{
 					move = new Move(board, orig, dest);
-				} else
+				}
+				else
 				{
 					move = new Move(board, orig, dest, promo);
 				}
@@ -152,8 +149,8 @@ public final class AlgebraicConverter
 	public static Game convert(Game g, File f) throws Exception
 	{
 		Game game = g;
-		Board board = game.getBoards()[0];// Since this is Classic chess, it'll
-		// always be Boards[0]
+		// Since this is Classic chess, it'll always be Boards[0]
+		Board board = game.getBoards()[0];
 		try
 		{
 			StringTokenizer st;
@@ -162,8 +159,8 @@ public final class AlgebraicConverter
 			while (in.hasNext())
 			{
 				st = new StringTokenizer(in.nextLine());
-				st.nextToken();// Move past the turn number...we don't care
-				// about that
+				// Move past the turn number...we don't care about that
+				st.nextToken();
 				String whiteMove = st.nextToken();
 				if (!st.hasMoreTokens())
 				{
@@ -175,8 +172,8 @@ public final class AlgebraicConverter
 				{
 					break;
 				}
-				g.playMove(temp);// Play the Move on the Board so it'll be added
-				// the history
+				// Play the Move on the Board so it'll be added the history
+				g.playMove(temp);
 
 				temp = algToMove(blackMove, board);
 				if (temp == null)
@@ -186,7 +183,8 @@ public final class AlgebraicConverter
 				g.playMove(temp);
 			}
 			in.close();
-		} catch (Exception e)
+		}
+		catch (Exception e)
 		{
 			return null;
 		}
@@ -205,31 +203,30 @@ public final class AlgebraicConverter
 	{
 		try
 		{
-			BufferedWriter out = new BufferedWriter(new FileWriter(new File(
-					pathName)));
+			BufferedWriter out = new BufferedWriter(new FileWriter(FileUtility.getCompletedGamesFile(pathName)));
 			String toWrite = "";
 			for (int i = 0, j = 1; i < moves.size(); i++)
 			{
 				String turn = moves.get(i).toString();
 				if (moves.get(i).result != null)
 				{
-					turn = moves.get(i)
-							+ (i % 2 == 0 ? (" " + moves.get(i).result) : ("\n"
-									+ (j + 1) + " " + moves.get(i).result));
+					turn = moves.get(i) + (i % 2 == 0 ? (" " + moves.get(i).result) : ("\n" + (j + 1) + " " + moves.get(i).result));
 				}
-				if (i % 2 == 1 || moves.get(i).result != null)
+				if (i % 2 != 0 || moves.get(i).result != null)
 				{
 					out.write(j + " " + toWrite + " " + turn + '\n');
 					toWrite = "";
 					j++;
-				} else
+				}
+				else
 				{
 					toWrite += turn;
 				}
 
 			}
 			out.close();
-		} catch (Exception e)
+		}
+		catch (Exception e)
 		{
 			e.printStackTrace();
 		}
@@ -247,7 +244,7 @@ public final class AlgebraicConverter
 		String pat = "";
 		pat += "([O0]-[O0]-[O0]|[O0]-[O0]";// Check for castling (Group 1)
 		pat += "|^([KNQRB])?";// Check for the type of piece that's moving, null
-		// if pawn
+								// if pawn
 		pat += "([A-Ha-h])?";// Check for the origin column of the moving piece
 		pat += "([1-8])?";// Check for the origin row of the moving piece
 		pat += "([x:])?";// Check if the move is a capture

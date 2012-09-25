@@ -47,18 +47,17 @@ public class NetworkServer
 				PlayGame.resetTimers();
 
 				clientSocket = serverSocket.accept();
-			} catch (Exception e)
+			}
+			catch (Exception e)
 			{
-				if (NewGameMenu.cancelled)
+				if (NewGameMenu.m_isCancelled)
 					return;
 			}
 		}
 
-		AnimatedLabel.finished = true;
-		ObjectOutputStream out = new ObjectOutputStream(
-				clientSocket.getOutputStream());
-		ObjectInputStream in = new ObjectInputStream(
-				clientSocket.getInputStream());
+		AnimatedLabel.m_isFinished = true;
+		ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+		ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
 
 		Object fromUser;
 		Object fromServer;
@@ -73,47 +72,63 @@ public class NetworkServer
 		{
 			while (g.isBlackMove() == false)
 			{
-				while (PlayNetGame.netMove == null)
+				while (PlayNetGame.m_netMove == null)
 					Thread.sleep(0);
-				fromServer = PlayNetGame.netMove;
-				PlayNetGame.netMove = null;
+				fromServer = PlayNetGame.m_netMove;
+				PlayNetGame.m_netMove = null;
 
 				out.writeObject(fromServer);
 				out.flush();
 			}
 
-			while (PlayNetGame.running)
+			while (PlayNetGame.m_isRunning)
 			{
-				while (g.isBlackMove() == true && PlayNetGame.running)
+				while (g.isBlackMove() == true && PlayNetGame.m_isRunning)
 				{
 					fromUser = in.readObject();
 					FakeMove toMove = (FakeMove) fromUser;
-					if (toMove.originCol == -1)
+					if (toMove.m_originColumn == -1)
 					{
-						int surrender = JOptionPane
-								.showConfirmDialog(
-										null,
-										"The other player has requested a Draw. Do you accept?",
-										"Draw", JOptionPane.YES_NO_OPTION);
+						int surrender = JOptionPane.showConfirmDialog(null, "The other player has requested a Draw. Do you accept?",
+								"Draw", JOptionPane.YES_NO_OPTION);
 						if (surrender == 0)
 						{ // If this player also accepts the Draw.
-							out.writeObject(new FakeMove(-2, -2, -2, -2, -2,
-									null)); // Write out a new object which
-											// shows you accepted the Draw.
-							Result r = new Result(Result.DRAW);
-							r.setText("The game has ended in a Draw!");
-							g.getLastMove().setResult(r);
-							PlayGame.endOfGame(r);
+							out.writeObject(new FakeMove(-2, -2, -2, -2, -2, null)); // Write
+																						// out
+																						// a
+																						// new
+																						// object
+																						// which
+																						// shows
+																						// you
+																						// accepted
+																						// the
+																						// Draw.
+							Result result = Result.DRAW;
+							result.setGUIText("The game has ended in a Draw!");
+							g.getLastMove().setResult(result);
+							PlayGame.endOfGame(result);
 							throw new Exception();
-						} else
+						}
+						else
 						{
-							out.writeObject(new FakeMove(-3, -3, -3, -3, -3,
-									null));// Else, write out an object which
-											// shows you did NOT accept the
-											// Draw.
+							out.writeObject(new FakeMove(-3, -3, -3, -3, -3, null));// Else,
+																					// write
+																					// out
+																					// an
+																					// object
+																					// which
+																					// shows
+																					// you
+																					// did
+																					// NOT
+																					// accept
+																					// the
+																					// Draw.
 							continue;
 						}
-					} else
+					}
+					else
 					{
 						g.playMove(g.fakeToRealMove((FakeMove) fromUser));
 						if (g.getLastMove().getResult() != null)
@@ -121,41 +136,38 @@ public class NetworkServer
 					}
 				}
 
-				while (g.isBlackMove() == false && PlayNetGame.running)
+				while (g.isBlackMove() == false && PlayNetGame.m_isRunning)
 				{
-					while (PlayNetGame.netMove == null && !png.drawRequested
-							&& PlayNetGame.running)
+					while (PlayNetGame.m_netMove == null && !png.m_drawRequested && PlayNetGame.m_isRunning)
 						Thread.sleep(0);
-					if (png.drawRequested)
+					if (png.m_drawRequested)
 					{
 						fromUser = in.readObject();
 						FakeMove toMove = (FakeMove) fromUser;
-						if (toMove.originCol == -2)
+						if (toMove.m_originColumn == -2)
 						{
-							Result r = new Result(Result.DRAW);
-							r.setText("The game has ended in a Draw!");
-							g.getLastMove().setResult(r);
-							PlayGame.endOfGame(r);
-							png.drawRequested = false;
+							Result result = Result.DRAW;
+							result.setGUIText("The game has ended in a Draw!");
+							g.getLastMove().setResult(result);
+							PlayGame.endOfGame(result);
+							png.m_drawRequested = false;
 							throw new Exception();
-						} else if (toMove.originCol == -3)
+						}
+						else if (toMove.m_originColumn == -3)
 						{ // If the response is an unaccepted Draw request, do
 							// not perform the Move.
-							JOptionPane
-									.showMessageDialog(
-											null,
-											"Your request for a draw has been denied. Continue play as normal.",
-											"Denied", JOptionPane.PLAIN_MESSAGE);
-							png.drawRequested = false;
+							JOptionPane.showMessageDialog(null, "Your request for a draw has been denied. Continue play as normal.",
+									"Denied", JOptionPane.PLAIN_MESSAGE);
+							png.m_drawRequested = false;
 							continue;
 						}
 					}
 
-					fromServer = PlayNetGame.netMove;
-					PlayNetGame.netMove = null;
+					fromServer = PlayNetGame.m_netMove;
+					PlayNetGame.m_netMove = null;
 
-					if (((FakeMove) fromServer).originCol == -1)
-						png.drawRequested = true;
+					if (((FakeMove) fromServer).m_originColumn == -1)
+						png.m_drawRequested = true;
 
 					out.writeObject(fromServer);
 					out.flush();
@@ -163,35 +175,34 @@ public class NetworkServer
 						break;
 				}
 			}
-		} catch (SocketException e)
+		}
+		catch (SocketException e)
 		{
 			e.printStackTrace();
-			JOptionPane.showMessageDialog(null,
-					"Your opponent closed the game", "Oops!",
-					JOptionPane.ERROR_MESSAGE);
-			Driver.getInstance().fileMenu.setVisible(true);
-			Driver.getInstance().gameOptions.setVisible(false);
-			Driver.getInstance().revertPanel();
+			JOptionPane.showMessageDialog(null, "Your opponent closed the game", "Oops!", JOptionPane.ERROR_MESSAGE);
+			Driver.getInstance().m_fileMenu.setVisible(true);
+			Driver.getInstance();
+			Driver.m_gameOptionsMenu.setVisible(false);
+			Driver.getInstance().revertToMainPanel();
 			serverSocket.close();
 			return;
-		} catch (EOFException e)
+		}
+		catch (EOFException e)
 		{
 			e.printStackTrace();
-			if (g.getHistory().size() != 0
-					&& g.getHistory().get(g.getHistory().size() - 1)
-							.getResult() != null)
+			if (g.getHistory().size() != 0 && g.getHistory().get(g.getHistory().size() - 1).getResult() != null)
 				return;
-			JOptionPane.showMessageDialog(null,
-					"Your opponent closed the game", "Oops!",
-					JOptionPane.ERROR_MESSAGE);
-			g.getBlackTimer().stop();
-			g.getWhiteTimer().stop();
-			Driver.getInstance().fileMenu.setVisible(true);
-			Driver.getInstance().gameOptions.setVisible(false);
-			Driver.getInstance().revertPanel();
+			JOptionPane.showMessageDialog(null, "Your opponent closed the game", "Oops!", JOptionPane.ERROR_MESSAGE);
+			g.getBlackTimer().stopTimer();
+			g.getWhiteTimer().stopTimer();
+			Driver.getInstance().m_fileMenu.setVisible(true);
+			Driver.getInstance();
+			Driver.m_gameOptionsMenu.setVisible(false);
+			Driver.getInstance().revertToMainPanel();
 			serverSocket.close();
 			return;
-		} catch (Exception e)
+		}
+		catch (Exception e)
 		{
 			e.printStackTrace();
 		}

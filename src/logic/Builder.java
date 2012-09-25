@@ -1,18 +1,18 @@
 package logic;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-
-import javax.swing.ImageIcon;
+import java.util.Map;
 
 import rules.Rules;
+import utility.FileUtility;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Builder.java Builder class to create Game Types
@@ -22,42 +22,6 @@ import rules.Rules;
  */
 public class Builder implements Serializable
 {
-
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = 2099226533521671457L;
-
-	/**
-	 * The name of this Game type
-	 */
-	private String name;
-
-	/**
-	 * The Board[] for this Game type
-	 */
-	private Board[] boards;
-
-	/**
-	 * List of white Pieces
-	 */
-	public List<Piece> whiteTeam;
-
-	/**
-	 * List of black Pieces
-	 */
-	public List<Piece> blackTeam;
-
-	/**
-	 * Rules object for the white player
-	 */
-	private Rules whiteRules;
-
-	/**
-	 * Rules object for the black player
-	 */
-	private Rules blackRules;
-
 	/**
 	 * Constructor
 	 * 
@@ -65,9 +29,9 @@ public class Builder implements Serializable
 	 */
 	public Builder(String name)
 	{
-		this.name = name;
-		whiteTeam = new ArrayList<Piece>();
-		blackTeam = new ArrayList<Piece>();
+		m_name = name;
+		m_whiteTeam = Lists.newArrayList();
+		m_blackTeam = Lists.newArrayList();
 	}
 
 	/**
@@ -80,15 +44,14 @@ public class Builder implements Serializable
 	 * @param blackRules The rules for the black team
 	 * @param whiteRules The rules for the white team
 	 */
-	public Builder(String name, Board[] boards, List<Piece> whiteTeam,
-			List<Piece> blackTeam, Rules whiteRules, Rules blackRules)
+	public Builder(String name, Board[] boards, List<Piece> whiteTeam, List<Piece> blackTeam, Rules whiteRules, Rules blackRules)
 	{
-		this.name = name;
-		this.boards = boards;
-		this.whiteTeam = whiteTeam;
-		this.blackTeam = blackTeam;
-		this.whiteRules = whiteRules;
-		this.blackRules = blackRules;
+		m_name = name;
+		m_boards = boards;
+		m_whiteTeam = whiteTeam;
+		m_blackTeam = blackTeam;
+		m_whiteRules = whiteRules;
+		m_blackRules = blackRules;
 	}
 
 	/**
@@ -98,31 +61,31 @@ public class Builder implements Serializable
 	{
 		Builder classic = new Builder("Classic");// Name is Classic chess
 		classic.setBoards(new Board[] { new Board(8, 8, false) });
-		Board b = classic.boards[0];
+		Board b = classic.m_boards[0];
 		for (int i = 1; i < 9; i++)
 		{
-			classic.whiteTeam.add(createPawn(false, b.getSquare(2, i), b));
-			classic.blackTeam.add(createPawn(true, b.getSquare(7, i), b));
+			classic.m_whiteTeam.add(createPawn(false, b.getSquare(2, i), b));
+			classic.m_blackTeam.add(createPawn(true, b.getSquare(7, i), b));
 		}
-		classic.whiteTeam.add(createRook(false, b.getSquare(1, 1), b));
-		classic.whiteTeam.add(createKnight(false, b.getSquare(1, 2), b));
-		classic.whiteTeam.add(createBishop(false, b.getSquare(1, 3), b));
-		classic.whiteTeam.add(createQueen(false, b.getSquare(1, 4), b));
-		classic.whiteTeam.add(createKing(false, b.getSquare(1, 5), b));
-		classic.whiteTeam.add(createBishop(false, b.getSquare(1, 6), b));
-		classic.whiteTeam.add(createKnight(false, b.getSquare(1, 7), b));
-		classic.whiteTeam.add(createRook(false, b.getSquare(1, 8), b));
+		classic.m_whiteTeam.add(createRook(false, b.getSquare(1, 1), b));
+		classic.m_whiteTeam.add(createKnight(false, b.getSquare(1, 2), b));
+		classic.m_whiteTeam.add(createBishop(false, b.getSquare(1, 3), b));
+		classic.m_whiteTeam.add(createQueen(false, b.getSquare(1, 4), b));
+		classic.m_whiteTeam.add(createKing(false, b.getSquare(1, 5), b));
+		classic.m_whiteTeam.add(createBishop(false, b.getSquare(1, 6), b));
+		classic.m_whiteTeam.add(createKnight(false, b.getSquare(1, 7), b));
+		classic.m_whiteTeam.add(createRook(false, b.getSquare(1, 8), b));
 
-		classic.blackTeam.add(createRook(true, b.getSquare(8, 1), b));
-		classic.blackTeam.add(createKnight(true, b.getSquare(8, 2), b));
-		classic.blackTeam.add(createBishop(true, b.getSquare(8, 3), b));
-		classic.blackTeam.add(createQueen(true, b.getSquare(8, 4), b));
-		classic.blackTeam.add(createKing(true, b.getSquare(8, 5), b));
-		classic.blackTeam.add(createBishop(true, b.getSquare(8, 6), b));
-		classic.blackTeam.add(createKnight(true, b.getSquare(8, 7), b));
-		classic.blackTeam.add(createRook(true, b.getSquare(8, 8), b));
+		classic.m_blackTeam.add(createRook(true, b.getSquare(8, 1), b));
+		classic.m_blackTeam.add(createKnight(true, b.getSquare(8, 2), b));
+		classic.m_blackTeam.add(createBishop(true, b.getSquare(8, 3), b));
+		classic.m_blackTeam.add(createQueen(true, b.getSquare(8, 4), b));
+		classic.m_blackTeam.add(createKing(true, b.getSquare(8, 5), b));
+		classic.m_blackTeam.add(createBishop(true, b.getSquare(8, 6), b));
+		classic.m_blackTeam.add(createKnight(true, b.getSquare(8, 7), b));
+		classic.m_blackTeam.add(createRook(true, b.getSquare(8, 8), b));
 
-		classic.writeFile(new Rules(true, false), new Rules(true, true));
+		classic.writeFile(new Rules(false), new Rules(true));
 	}
 
 	/**
@@ -136,14 +99,12 @@ public class Builder implements Serializable
 	 */
 	public static Piece createBishop(boolean isBlack, Square square, Board board)
 	{
-		HashMap<Character, Integer> bishopMovement = new HashMap<Character, Integer>();
+		Map<Character, Integer> bishopMovement = Maps.newHashMap();
 		bishopMovement.put('R', -1);
 		bishopMovement.put('r', -1);
 		bishopMovement.put('L', -1);
 		bishopMovement.put('l', -1);
-		return new Piece("Bishop", new ImageIcon("./images/bishop_dark.png"),
-				new ImageIcon("./images/bishop_light.png"), isBlack, square,
-				board, bishopMovement);
+		return new Piece("Bishop", isBlack, square, board, bishopMovement);
 	}
 
 	/**
@@ -157,7 +118,7 @@ public class Builder implements Serializable
 	 */
 	public static Piece createKing(boolean isBlack, Square square, Board board)
 	{
-		HashMap<Character, Integer> kingMovement = new HashMap<Character, Integer>();
+		Map<Character, Integer> kingMovement = Maps.newHashMap();
 		kingMovement.put('N', 1);
 		kingMovement.put('S', 1);
 		kingMovement.put('E', 1);
@@ -166,9 +127,7 @@ public class Builder implements Serializable
 		kingMovement.put('r', 1);
 		kingMovement.put('L', 1);
 		kingMovement.put('l', 1);
-		return new Piece("King", new ImageIcon("./images/king_dark.png"),
-				new ImageIcon("./images/king_light.png"), isBlack, square,
-				board, kingMovement);
+		return new Piece("King", isBlack, square, board, kingMovement);
 	}
 
 	/**
@@ -182,12 +141,10 @@ public class Builder implements Serializable
 	 */
 	public static Piece createKnight(boolean isBlack, Square square, Board board)
 	{
-		HashMap<Character, Integer> knightMovement = new HashMap<Character, Integer>();
+		Map<Character, Integer> knightMovement = Maps.newHashMap();
 		knightMovement.put('x', 1);
 		knightMovement.put('y', 2);
-		return new Piece("Knight", new ImageIcon("./images/knight_dark.png"),
-				new ImageIcon("./images/knight_light.png"), isBlack, square,
-				board, knightMovement);
+		return new Piece("Knight", isBlack, square, board, knightMovement);
 	}
 
 	/**
@@ -201,10 +158,8 @@ public class Builder implements Serializable
 	 */
 	public static Piece createPawn(boolean isBlack, Square square, Board board)
 	{
-		Piece pawn = new Piece("Pawn", new ImageIcon("./images/pawn_dark.png"),
-				new ImageIcon("./images/pawn_light.png"), isBlack, square,
-				board, null);
-		ArrayList<String> promotesTo = new ArrayList<String>();
+		Piece pawn = new Piece("Pawn", isBlack, square, board, null);
+		List<String> promotesTo = Lists.newArrayList();
 		promotesTo.add("Queen");
 		promotesTo.add("Bishop");
 		promotesTo.add("Knight");
@@ -224,7 +179,7 @@ public class Builder implements Serializable
 	 */
 	public static Piece createQueen(boolean isBlack, Square square, Board board)
 	{
-		HashMap<Character, Integer> queenMovement = new HashMap<Character, Integer>();
+		Map<Character, Integer> queenMovement = Maps.newHashMap();
 		queenMovement.put('N', -1);
 		queenMovement.put('S', -1);
 		queenMovement.put('W', -1);
@@ -233,9 +188,7 @@ public class Builder implements Serializable
 		queenMovement.put('r', -1);
 		queenMovement.put('L', -1);
 		queenMovement.put('l', -1);
-		return new Piece("Queen", new ImageIcon("./images/queen_dark.png"),
-				new ImageIcon("./images/queen_light.png"), isBlack, square,
-				board, queenMovement);
+		return new Piece("Queen", isBlack, square, board, queenMovement);
 	}
 
 	/**
@@ -249,14 +202,12 @@ public class Builder implements Serializable
 	 */
 	public static Piece createRook(boolean isBlack, Square square, Board board)
 	{
-		HashMap<Character, Integer> rookMovement = new HashMap<Character, Integer>();
+		Map<Character, Integer> rookMovement = Maps.newHashMap();
 		rookMovement.put('N', -1);
 		rookMovement.put('S', -1);
 		rookMovement.put('W', -1);
 		rookMovement.put('E', -1);
-		return new Piece("Rook", new ImageIcon("./images/rook_dark.png"),
-				new ImageIcon("./images/rook_light.png"), isBlack, square,
-				board, rookMovement);
+		return new Piece("Rook", isBlack, square, board, rookMovement);
 	}
 
 	/**
@@ -264,18 +215,16 @@ public class Builder implements Serializable
 	 * 
 	 * @return A Set containing the names of Game types
 	 */
-	public static String[] getArray()
+	public static String[] getVariantFileArray()
 	{
-		File f = new File("variants");
-		f.mkdir();
-		String[] vars = f.list();
+		String[] vars = FileUtility.getVariantsFileArray();
 		for (String s : vars)
 		{
 			if (s.equals("Classic"))
 				return vars;
 		}
 		buildClassic();
-		return getArray();
+		return getVariantFileArray();
 	}
 
 	/**
@@ -286,24 +235,22 @@ public class Builder implements Serializable
 	 */
 	public static Game newGame(String name)
 	{
-		new File("variants").mkdir();
-		String[] vars = new File("variants").list();
+		String[] vars = FileUtility.getVariantsFileArray();
 		for (String s : vars)
 		{
 			if (s.equals(name))
 			{
 				try
 				{
-					ObjectInputStream in = new ObjectInputStream(
-							new FileInputStream("variants/" + name));
+					ObjectInputStream in = new ObjectInputStream(new FileInputStream(FileUtility.getVariantsFile(name)));
 					Builder b = (Builder) in.readObject();
-					Game toReturn = new Game(name, b.boards, b.whiteRules,
-							b.blackRules);
-					toReturn.setWhiteTeam(b.whiteTeam);
-					toReturn.setBlackTeam(b.blackTeam);
+					Game toReturn = new Game(name, b.m_boards, b.m_whiteRules, b.m_blackRules);
+					toReturn.setWhiteTeam(b.m_whiteTeam);
+					toReturn.setBlackTeam(b.m_blackTeam);
 
 					return toReturn;
-				} catch (Exception e)
+				}
+				catch (Exception e)
 				{
 					e.printStackTrace();
 					return null;
@@ -320,7 +267,7 @@ public class Builder implements Serializable
 	 */
 	public Board[] getBoards()
 	{
-		return boards;
+		return m_boards;
 	}
 
 	/**
@@ -330,7 +277,7 @@ public class Builder implements Serializable
 	 */
 	public void setBoards(Board[] boards)
 	{
-		this.boards = boards;
+		m_boards = boards;
 	}
 
 	/**
@@ -343,17 +290,29 @@ public class Builder implements Serializable
 	{
 		try
 		{
-			new File("variants").mkdir();
-			FileOutputStream f_out = new FileOutputStream(new File("variants/"
-					+ name));
+			FileOutputStream f_out = new FileOutputStream(FileUtility.getVariantsFile(m_name));
 			ObjectOutputStream out = new ObjectOutputStream(f_out);
-			out.writeObject(new Builder(name, boards, whiteTeam, blackTeam,
-					whiteRules, blackRules));
+			out.writeObject(new Builder(m_name, m_boards, m_whiteTeam, m_blackTeam, whiteRules, blackRules));
 			out.close();
 			f_out.close();
-		} catch (Exception e)
+		}
+		catch (Exception e)
 		{
 		}
 	}
+
+	public void setName(String name)
+	{
+		m_name = name;
+	}
+
+	private static final long serialVersionUID = 2099226533521671457L;
+
+	private String m_name;
+	private Board[] m_boards;
+	public List<Piece> m_whiteTeam;
+	public List<Piece> m_blackTeam;
+	private Rules m_whiteRules;
+	private Rules m_blackRules;
 
 }

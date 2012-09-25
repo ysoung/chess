@@ -1,487 +1,461 @@
 package gui;
 
-import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Image;
+import java.awt.Insets;
+import java.awt.SystemTray;
+import java.awt.TrayIcon;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
+import java.io.PrintWriter;
 
 import javax.imageio.ImageIO;
 import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
 import javax.swing.UIManager;
+import javax.swing.WindowConstants;
 
 import logic.Game;
 import timer.ChessTimer;
+import utility.AppConstants;
+import utility.FileUtility;
+import utility.GUIUtility;
 
-/**
- * Driver.java
- * 
- * Driver to initiate the chess program.
- * 
- * @author Drew Hannay, Daniel Opdyke, Andrew Wolfe & John McCormick
- * 
- * CSCI 335, Wheaton College, Spring 2011 Phase 2 April 7, 2011
- */
-
-final public class Driver extends JFrame
+public final class Driver extends JFrame
 {
-
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = -3533604157531154757L;
-
-	/**
-	 * Singleton reference to the Driver.
-	 */
-	private final static Driver d = new Driver();
-	/**
-	 * Button with listener to create a new Game.
-	 */
-	private JButton newGame;
-	/**
-	 * Button with listener to continue a saved Game.
-	 */
-	private JButton continueGame;
-	/**
-	 * Button with listener to view completed Games.
-	 */
-	private JButton viewGame;
-	/**
-	 * Button with listener to create new Game type.
-	 */
-	private JButton createType;
-	/**
-	 * JPanel to hold the contents of the main window.
-	 */
-	private JPanel mainPanel;
-	/**
-	 * JMenuBar to hold menu items.
-	 */
-	private JMenuBar menuBar;
-	/**
-	 * Menu Item for explaining gameplay
-	 */
-	public JMenuItem gamePlayHelp;
-	/**
-	 * Menu item to explain making variants
-	 */
-	public JMenuItem variantHelp;
-	/**
-	 * Menu item to display help on the completed games window
-	 */
-	public JMenuItem completedHelp;
-	/**
-	 * Menu to diplay the help items
-	 */
-	public JMenu helpMenu;
-	/**
-	 * JPanel representing another arbitrary panel to be displayed in this
-	 * window.
-	 */
-	private JPanel otherPanel;
-	/**
-	 * Menu to hold the options created in playGame for saving and such in game.
-	 */
-	public JMenu gameOptions;
-	/**
-	 * Menu item for the File options
-	 */
-	public JMenu fileMenu;
-
-	/**
-	 * Initiate the program by creating a new Driver.
-	 * 
-	 * @param args Arguments passed on the command line.
-	 */
 	public static void main(String[] args)
 	{
-		d.initComponents();
+		m_driver.initGUIComponents();
 	}
 
-	/**
-	 * Constructor Private, to make Driver a singleton
-	 */
 	private Driver()
 	{
 	}
 
-	/**
-	 * Initialize components of the GUI Create all the GUI components, set their
-	 * specific properties and add them to the window. Also add any necessary
-	 * ActionListeners.
-	 */
-	private void initComponents()
+	private void initGUIComponents()
 	{
-
-		setTitle("Chess Master 9001");
+		setTitle(AppConstants.APP_NAME);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setSize(325, 340);
-		setLocationRelativeTo(null);// This line makes the window show up in the
-									// center of the user's screen, regardless
-									// of resolution.
+		setResizable(false);
+
+		// make the window show up in the center of the screen, regardless of
+		// resolution
+		setLocationRelativeTo(null);
 
 		setResizable(false);
 		setLayout(new FlowLayout());
 		setResizable(true);
 
-		// This section makes the app match the look and feel of whatever system
-		// it's running on.
+		// make the app match the look and feel of the user's system
 		try
 		{
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-		} catch (Exception e)
+		}
+		catch (Exception e)
 		{
+			e.printStackTrace();
 		}
 
-		// Setting up a new panel to hold everything on the main window
-		mainPanel = new JPanel();
-		mainPanel.setBorder(BorderFactory.createLoweredBevelBorder());
+		// set up a new panel to hold everything in the main window
+		m_mainPanel = new JPanel();
+		m_mainPanel.setBorder(BorderFactory.createLoweredBevelBorder());
 
-		// Adding the image to the front page
-		BufferedImage temp = null;
+		JLabel iconHolder = new JLabel(GUIUtility.createImageIcon(300, 200, "/chess_picture.png"));
+		BufferedImage frontPageImage;
 		try
 		{
-			temp = ImageIO.read(new File("./images/front_page_image.jpeg")); // Gets
-																				// it
-																				// from
-																				// the
-																				// image
-																				// folder
-		} catch (IOException e1)
-		{
-			e1.printStackTrace();
+			frontPageImage = ImageIO.read(getClass().getResource("/chess_picture.png"));
+			if (System.getProperty("os.name").startsWith("Windows"))
+			{
+				final SystemTray sysTray = SystemTray.getSystemTray();
+				TrayIcon tray = new TrayIcon(frontPageImage.getScaledInstance(25, 18, Image.SCALE_SMOOTH));
+				sysTray.add(tray);
+			}
+			setIconImage(frontPageImage);
 		}
-		// Makes the image an icon and ands it to a JLabel
-		ImageIcon picture = new ImageIcon(temp);
-		JLabel pictureHolder = new JLabel();
-		picture.setImage(picture.getImage().getScaledInstance(300, 200,
-				Image.SCALE_SMOOTH));
-		pictureHolder.setIcon(picture);
-
-		// Creates the button to make a new game
-		newGame = new JButton("New Game");
-		newGame.setToolTipText("Press to start a new game of Chess");
-		newGame.addActionListener(new ActionListener()
+		catch (Exception e)
 		{
+			e.printStackTrace();
+		}
 
+		m_newGameButton = new JButton("New Game");
+		m_newGameButton.setToolTipText("Press to start a new game of Chess");
+		m_newGameButton.addActionListener(new ActionListener()
+		{
 			@Override
-			public void actionPerformed(ActionEvent e)
+			public void actionPerformed(ActionEvent event)
 			{
-				// Remove the current panel, set otherPanel, repaint.
-				helpMenu.setText("Game Help"); // Sets the help menu to say Game
-												// Help
-				gamePlayHelp.setVisible(true); // Shows the help for general
-												// game play
-				// gameOptions.setVisible(true); //Turns on the game options
-				remove(mainPanel);
-				otherPanel = new NewGameMenu();
-				add(otherPanel);
-				pack();
+				setPanel(new NewGameMenu());
 			}
 		});
 
-		// Creates the button to load a saved game
-		continueGame = new JButton("Load Game");
-		continueGame.setToolTipText("Press to load a saved game");
-		continueGame.addActionListener(new ActionListener()
+		m_continueGameButton = new JButton("Load Game");
+		m_continueGameButton.setToolTipText("Press to load a saved game");
+		m_continueGameButton.addActionListener(new ActionListener()
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent arg0)
+			public void actionPerformed(ActionEvent event)
 			{
-				try
+				String[] files = FileUtility.getGamesInProgressFileArray();
+
+				if (files.length == 0)
 				{
-					File dir = new File("gamesInProgress");
-					String[] files = dir.list();
-
-					if (files == null)
-					{
-						JOptionPane
-								.showMessageDialog(
-										null,
-										"There are no saved games. Try starting a new game instead.",
-										"No Completed Games",
-										JOptionPane.ERROR_MESSAGE);
-						return;
-					}
-
-					String choice = (String) JOptionPane.showInputDialog(
-							Driver.getInstance(), "Please select a save file:",
-							"Save File Select", JOptionPane.PLAIN_MESSAGE,
-							null, files, null);
-					if (choice == null)
-						return;
-					FileInputStream f_in = new FileInputStream(new File(
-							"gamesInProgress/" + choice));
-					ObjectInputStream obj_in = new ObjectInputStream(f_in);
-					Game toPlay = (Game) obj_in.readObject();
-					// Sets the help menu info to be specific for game play
-					helpMenu.setText("Game Help");
-					gamePlayHelp.setVisible(true);
-					if (gameOptions != null)
-						gameOptions.setVisible(true);
-
-					// Changes panels
-					remove(mainPanel);
-					otherPanel = new PlayGame(toPlay, false);
-					add(otherPanel);
-					pack();
-				} catch (Exception e)
-				{
-					e.printStackTrace();
-					JOptionPane
-							.showMessageDialog(
-									null,
-									"There is no saved game. Start a New Game instead.",
-									"No Saved Game", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(Driver.getInstance(), "There are no saved games. Try starting a new game instead.",
+							"No Completed Games", JOptionPane.ERROR_MESSAGE);
+					return;
 				}
-			}
-		});
 
-		// Creates a button to load completed games
-		viewGame = new JButton("View Completed Games");
-		viewGame.setToolTipText("Press to review a finished game");
-		viewGame.addActionListener(new ActionListener()
-		{
+				final JFrame poppedFrame = new JFrame("Load Saved Game");
+				poppedFrame.setLayout(new GridBagLayout());
+				poppedFrame.setSize(225, 200);
+				poppedFrame.setResizable(false);
+				poppedFrame.setLocationRelativeTo(Driver.this);
+				GridBagConstraints constraints = new GridBagConstraints();
 
-			@Override
-			public void actionPerformed(ActionEvent arg0)
-			{
-				try
+				final JList gamesInProgressList = new JList(FileUtility.getGamesInProgressFileArray());
+				final JScrollPane scrollPane = new JScrollPane(gamesInProgressList);
+				scrollPane.setPreferredSize(new Dimension(200, 200));
+				gamesInProgressList.setSelectedIndex(0);
+
+				JButton nextButton = new JButton("Next");
+				nextButton.addActionListener(new ActionListener()
 				{
-					File dir = new File("completedGames");
-					String[] files = dir.list();
-					if (files == null)
+					@Override
+					public void actionPerformed(ActionEvent event)
 					{
-						JOptionPane
-								.showMessageDialog(
-										null,
-										"There are no completed games to display.",
-										"No Completed Games",
-										JOptionPane.ERROR_MESSAGE);
-						return;
-					}
-
-					String choice = (String) JOptionPane.showInputDialog(
-							Driver.getInstance(), "Please select a file:",
-							"File Select", JOptionPane.PLAIN_MESSAGE, null,
-							files, null);
-					if (choice == null)
-						return;
-
-					File file = new File("completedGames/" + choice);
-
-					Game toView;
-					if (choice.endsWith(".acn"))
-					{
+						FileInputStream fileInputStream;
+						ObjectInputStream objectInputStream;
+						Game gameToPlay;
 						try
 						{
-							otherPanel = new PlayGame(true, file);
-						} catch (Exception e)
-						{
-							JOptionPane
-									.showMessageDialog(
-											null,
-											"This file contains invalid ACN notation. Please check the format and try again");
-							return;
+							if (gamesInProgressList.getSelectedValue() == null)
+							{
+								JOptionPane.showMessageDialog(Driver.getInstance(), "Please select a game", "Error",
+										JOptionPane.PLAIN_MESSAGE);
+								return;
+							}
+							fileInputStream = new FileInputStream(FileUtility.getGamesInProgressFile(gamesInProgressList
+									.getSelectedValue().toString()));
+							objectInputStream = new ObjectInputStream(fileInputStream);
+							gameToPlay = (Game) objectInputStream.readObject();
+
+							// set the help menu info to be specific for game
+							// play
+							if (m_gameOptionsMenu != null)
+								m_gameOptionsMenu.setVisible(true);
+
+							setPanel(new PlayGame(gameToPlay, false));
+							poppedFrame.dispose();
 						}
-					} else
-					{
-						FileInputStream f_in = new FileInputStream(file);
-						ObjectInputStream obj_in = new ObjectInputStream(f_in);
-						toView = (Game) obj_in.readObject();
-						otherPanel = new PlayGame(toView, true);
+						catch (Exception e)
+						{
+							e.printStackTrace();
+							JOptionPane.showMessageDialog(Driver.getInstance(),
+									"There are no valid saved games. Start a New Game instead.", "Invalid Saved Games",
+									JOptionPane.PLAIN_MESSAGE);
+						}
 					}
-					// Sets up the help for playng back and changes the window
-					completedHelp.setVisible(true);
-					helpMenu.setText("Playback Help");
-					;
-					remove(mainPanel);
-					add(otherPanel);
-					pack();
-				} catch (Exception e)
+				});
+
+				JButton cancelButton = new JButton("Cancel");
+				GUIUtility.setupCancelButton(cancelButton, poppedFrame);
+
+				JButton deleteButton = new JButton("Delete Saved Game");
+				deleteButton.addActionListener(new ActionListener()
+				{
+					@Override
+					public void actionPerformed(ActionEvent event)
+					{
+						if (gamesInProgressList.getSelectedValue() != null)
+						{
+							boolean didDeleteSuccessfully = FileUtility.getGamesInProgressFile(
+									gamesInProgressList.getSelectedValue().toString()).delete();
+							if (!didDeleteSuccessfully)
+							{
+								JOptionPane.showMessageDialog(Driver.getInstance(), "Saved game was not deleted successfully",
+										"Error", JOptionPane.ERROR_MESSAGE);
+							}
+							else
+							{
+								gamesInProgressList.setListData(FileUtility.getGamesInProgressFileArray());
+								gamesInProgressList.setSelectedIndex(0);
+								if (gamesInProgressList.getSelectedValue() == null)
+								{
+									JOptionPane.showMessageDialog(Driver.getInstance(),
+											"There are no more completed games. Returning to Main Menu", "No Completed Games",
+											JOptionPane.PLAIN_MESSAGE);
+									poppedFrame.dispose();
+								}
+								scrollPane.getViewport().add(gamesInProgressList, null);
+							}
+						}
+						else
+						{
+							JOptionPane.showMessageDialog(Driver.getInstance(), "There are currently no save files!",
+									"No save file selected!", JOptionPane.PLAIN_MESSAGE);
+						}
+					}
+				});
+
+				constraints.gridx = 0;
+				constraints.gridy = 0;
+				constraints.gridwidth = 2;
+				constraints.insets = new Insets(5, 5, 5, 5);
+				poppedFrame.add(scrollPane, constraints);
+
+				constraints.gridx = 0;
+				constraints.gridy = 1;
+				poppedFrame.add(deleteButton, constraints);
+
+				constraints.weighty = 1.0;
+				constraints.weightx = 1.0;
+				constraints.gridx = 0;
+				constraints.gridy = 2;
+				constraints.gridwidth = 1;
+				constraints.anchor = GridBagConstraints.EAST;
+				poppedFrame.add(nextButton, constraints);
+
+				constraints.gridx = 1;
+				constraints.gridy = 2;
+				constraints.anchor = GridBagConstraints.WEST;
+				poppedFrame.add(cancelButton, constraints);
+
+				poppedFrame.setVisible(true);
+				poppedFrame.pack();
+			}
+		});
+
+		m_viewCompletedGameButton = new JButton("View Completed Games");
+		m_viewCompletedGameButton.setToolTipText("Press to review a finished game");
+		m_viewCompletedGameButton.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent arg0)
+			{
+				try
+				{
+					String[] files = FileUtility.getCompletedGamesFileArray();
+					if (files.length == 0)
+					{
+						JOptionPane.showMessageDialog(Driver.getInstance(), "There are no completed games to display.",
+								"No Completed Games", JOptionPane.PLAIN_MESSAGE);
+						return;
+					}
+
+					final JFrame poppedFrame = new JFrame("View Completed Game");
+					poppedFrame.setLayout(new GridBagLayout());
+					poppedFrame.setSize(225, 200);
+					poppedFrame.setResizable(false);
+					poppedFrame.setLocationRelativeTo(Driver.this);
+					GridBagConstraints constraints = new GridBagConstraints();
+
+					final JList completedGamesList = new JList(FileUtility.getCompletedGamesFileArray());
+					final JScrollPane scrollPane = new JScrollPane(completedGamesList);
+					scrollPane.setPreferredSize(new Dimension(200, 200));
+					completedGamesList.setSelectedIndex(0);
+
+					JButton nextButton = new JButton("Next");
+					nextButton.addActionListener(new ActionListener()
+					{
+						@Override
+						public void actionPerformed(ActionEvent event)
+						{
+							if (completedGamesList.getSelectedValue() == null)
+							{
+								JOptionPane.showMessageDialog(Driver.getInstance(), "Please select a game", "Error",
+										JOptionPane.PLAIN_MESSAGE);
+								return;
+							}
+
+							File file = FileUtility.getCompletedGamesFile(completedGamesList.getSelectedValue().toString());
+							FileInputStream fileInputStream;
+							ObjectInputStream objectInputStream;
+							Game gameToView;
+							if (completedGamesList.getSelectedValue().toString().endsWith(".acn"))
+							{
+								try
+								{
+									m_otherPanel = new PlayGame(true, file);
+								}
+								catch (Exception e)
+								{
+									JOptionPane.showMessageDialog(Driver.getInstance(),
+											"This file contains invalid ACN notation. Please check the format and try again",
+											"Invalid Notation", JOptionPane.PLAIN_MESSAGE);
+									return;
+								}
+							}
+							else
+							{
+								try
+								{
+									fileInputStream = new FileInputStream(file);
+									objectInputStream = new ObjectInputStream(fileInputStream);
+									gameToView = (Game) objectInputStream.readObject();
+
+									setPanel(new PlayGame(gameToView, false));
+									poppedFrame.dispose();
+								}
+								catch (Exception e)
+								{
+									e.printStackTrace();
+									JOptionPane.showMessageDialog(Driver.getInstance(),
+											"This game is corrupted, please choose another or start a New Game instead.",
+											"Invalid Completed Game", JOptionPane.PLAIN_MESSAGE);
+								}
+							}
+							deactivateWindowListener();
+							poppedFrame.dispose();
+						}
+					});
+
+					JButton cancelButton = new JButton("Cancel");
+					GUIUtility.setupCancelButton(cancelButton, poppedFrame);
+
+					JButton deleteButton = new JButton("Delete Completed Game");
+					deleteButton.addActionListener(new ActionListener()
+					{
+						@Override
+						public void actionPerformed(ActionEvent event)
+						{
+							if (completedGamesList.getSelectedValue() != null)
+							{
+								boolean didDeleteCompletedGameSuccessfully = FileUtility.getCompletedGamesFile(
+										completedGamesList.getSelectedValue().toString()).delete();
+								if (!didDeleteCompletedGameSuccessfully)
+								{
+									JOptionPane.showMessageDialog(Driver.getInstance(), "Completed game was not deleted successfully",
+											"Error", JOptionPane.PLAIN_MESSAGE);
+								}
+								else
+								{
+									completedGamesList.removeAll();
+									completedGamesList.setListData(FileUtility.getCompletedGamesFileArray());
+									completedGamesList.setSelectedIndex(0);
+									if (completedGamesList.getSelectedValue() == null)
+									{
+										JOptionPane.showMessageDialog(Driver.getInstance(),
+												"There are no more completed games. Returning to Main Menu", "No Completed Games",
+												JOptionPane.PLAIN_MESSAGE);
+										poppedFrame.dispose();
+									}
+									scrollPane.getViewport().add(completedGamesList, null);
+								}
+							}
+							else
+							{
+								JOptionPane.showMessageDialog(Driver.getInstance(), "There are currently no completed games!",
+										"No completed game selected!", JOptionPane.PLAIN_MESSAGE);
+							}
+						}
+					});
+
+					constraints.gridx = 0;
+					constraints.gridy = 0;
+					constraints.gridwidth = 2;
+					constraints.insets = new Insets(5, 5, 5, 5);
+					poppedFrame.add(scrollPane, constraints);
+
+					constraints.gridx = 0;
+					constraints.gridy = 1;
+					poppedFrame.add(deleteButton, constraints);
+
+					constraints.weighty = 1.0;
+					constraints.weightx = 1.0;
+					constraints.gridx = 0;
+					constraints.gridy = 2;
+					constraints.gridwidth = 1;
+					constraints.anchor = GridBagConstraints.EAST;
+					poppedFrame.add(nextButton, constraints);
+
+					constraints.gridx = 1;
+					constraints.gridy = 2;
+					constraints.anchor = GridBagConstraints.WEST;
+					poppedFrame.add(cancelButton, constraints);
+
+					poppedFrame.setVisible(true);
+					poppedFrame.pack();
+				}
+				catch (Exception e)
 				{
 					e.printStackTrace();
-					JOptionPane
-							.showMessageDialog(
-									null,
-									"Either there are no completed games or the game file is missing.",
-									"No Completed Games",
-									JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(Driver.getInstance(),
+							"Either there are no completed games or the game file is missing.", "No Completed Games",
+							JOptionPane.PLAIN_MESSAGE);
 				}
 			}
 		});
 
-		// Creates a button to allow creation of variants
-		createType = new JButton("Create New Game Type");
-		createType.setToolTipText("Press to make up a new kind of chess game");
-		createType.addActionListener(new ActionListener()
+		m_createVariantButton = new JButton("Create New Game Type");
+		m_createVariantButton.setToolTipText("Press to craft a new kind of chess game");
+		m_createVariantButton.addActionListener(new ActionListener()
 		{
-
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				// Remove the current panel, set otherPanel, repaint.
-				variantHelp.setVisible(true);
-				helpMenu.setText("Variant Help");
-				remove(mainPanel);
-				otherPanel = new NewTypeMenu();
-				add(otherPanel);
-				pack();
+				setPanel(new CustomSetupMenu());
 			}
 		});
 
-		// Create MenuBar and add MenuItems
-		menuBar = new JMenuBar();
-		fileMenu = new JMenu("File");
-		fileMenu.setForeground(Color.WHITE);
-		fileMenu.setMnemonic('F');
+		m_menuBar = new JMenuBar();
+		m_fileMenu = new JMenu("File");
+		m_fileMenu.setMnemonic('F');
 
-		// Making the help menu
-		helpMenu = new JMenu("Help");
-		helpMenu.setForeground(Color.white);
-		helpMenu.setMnemonic('H');
+		m_helpMenu = new JMenu("Help");
+		m_helpMenu.setMnemonic('H');
 
-		// Adding Help to menu with xkcd.com picture. will remove later
-		JMenuItem helpMenuItem = new JMenuItem("General Help", KeyEvent.VK_H);
-		helpMenuItem.setToolTipText("Press me to get general help");
-
-		BufferedImage help = null;
-		try
-		{
-			help = ImageIO.read(new File(
-					"./images/tech_support_cheat_sheet.png"));
-		} catch (IOException e1)
-		{
-			e1.printStackTrace();
-		}
-		// Making the icon and adding it to the appropriate menu item
-		final ImageIcon helpPicture = new ImageIcon(help);
-		helpPicture.setImage(helpPicture.getImage().getScaledInstance(600, 600,
-				Image.SCALE_SMOOTH));
+		JMenuItem helpMenuItem = new JMenuItem("Browse Help", KeyEvent.VK_H);
+		helpMenuItem.setToolTipText("Click on me to get help");
 		helpMenuItem.addActionListener(new ActionListener()
 		{
 			@Override
-			public void actionPerformed(ActionEvent arg0)
+			public void actionPerformed(ActionEvent e)
 			{
-				JOptionPane.showMessageDialog(Driver.this, "", "Help", 0,
-						helpPicture);
+				new HelpMenu();
 			}
-
 		});
-		helpMenu.add(helpMenuItem);
+		m_helpMenu.add(helpMenuItem);
 
-		BufferedImage helpGame = null;
-		try
+		JMenuItem aboutItem = new JMenuItem("About " + AppConstants.APP_NAME, KeyEvent.VK_A);
+		aboutItem.setToolTipText("Information about " + AppConstants.APP_NAME);
+		aboutItem.addActionListener(new ActionListener()
 		{
-			helpGame = ImageIO.read(new File("./images/gameplay_help.png")); // Gets
-																				// it
-																				// from
-																				// the
-																				// image
-																				// folder
-		} catch (IOException e1)
-		{
-			e1.printStackTrace();
-		}
-		// Makes the image an icon and ands it to a JLabel
-		final ImageIcon gameHelpPicture = new ImageIcon(helpGame);
-		gameHelpPicture.setImage(gameHelpPicture.getImage().getScaledInstance(
-				700, 375, Image.SCALE_SMOOTH));
-
-		// Adding the menu item to display help specific for normal game play
-		gamePlayHelp = new JMenuItem("Game Play Help", KeyEvent.VK_G);
-		gamePlayHelp.setToolTipText("Press if you need help with game play");
-		gamePlayHelp.addActionListener(new ActionListener()
-		{
-
-			@Override
-			public void actionPerformed(ActionEvent arg0)
-			{
-				JOptionPane.showMessageDialog(null, "", "Game Play Help", 0,
-						gameHelpPicture);
-			}
-
-		});
-		helpMenu.add(gamePlayHelp);
-		gamePlayHelp.setVisible(false);
-
-		BufferedImage helpMe = null;
-		try
-		{
-			helpMe = ImageIO.read(new File("./images/variant_help.png")); // Gets
-																			// it
-																			// from
-																			// the
-																			// image
-																			// folder
-		} catch (IOException e1)
-		{
-			e1.printStackTrace();
-		}
-		// Makes the image an icon and ands it to a JLabel
-		final ImageIcon variantPicture = new ImageIcon(helpMe);
-		variantPicture.setImage(variantPicture.getImage().getScaledInstance(
-				650, 300, Image.SCALE_SMOOTH));
-
-		// Adds the menu item to help for specific instructions on making
-		// variants
-		variantHelp = new JMenuItem("Variant Making Help", KeyEvent.VK_V);
-		variantHelp
-				.setToolTipText("Press me for help setting up your chess game");
-		variantHelp.addActionListener(new ActionListener()
-		{
-
-			@Override
-			public void actionPerformed(ActionEvent arg0)
-			{
-				JOptionPane.showMessageDialog(null, "", "Variant Help", 0,
-						variantPicture);
-			}
-
-		});
-		helpMenu.add(variantHelp);
-		variantHelp.setVisible(false);
-
-		// Menu item for making the help item to explain playing back a game
-		completedHelp = new JMenuItem("Game Review Help", KeyEvent.VK_R);
-		completedHelp
-				.setToolTipText("Press me for help playing back completed games");
-		completedHelp.addActionListener(new ActionListener()
-		{
-
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				JOptionPane
-						.showMessageDialog(
-								Driver.this,
-								"To play back a move press the Next Move button\n"
-										+ "or press the Last Move button to rewind one move.\n");
+				new AboutMenu(m_mainPanel);
 			}
 		});
-		helpMenu.add(completedHelp);
-		completedHelp.setVisible(false);
+		m_helpMenu.add(aboutItem);
 
-		// Adds menu item to load a new game
 		JMenuItem newGameItem = new JMenuItem("New Game", KeyEvent.VK_N);
 		newGameItem.setToolTipText("Press to start a new Game");
 		newGameItem.addActionListener(new ActionListener()
@@ -489,178 +463,399 @@ final public class Driver extends JFrame
 			@Override
 			public void actionPerformed(ActionEvent e)
 			{
-				// Remove the current panel, set otherPanel, repaint.
-				Driver.this.newGame();
+				setPanel(new NewGameMenu());
 			}
 		});
 
-		fileMenu.add(newGameItem);
+		m_fileMenu.add(newGameItem);
 
-		// Adding Main Menu Option
-		JMenuItem mainMenu = new JMenuItem("Main Menu", KeyEvent.VK_M);
-		mainMenu.setToolTipText("Press to return to the Main Menu");
-		mainMenu.addActionListener(new ActionListener()
+		m_mainMenu = new JMenuItem("Main Menu", KeyEvent.VK_M);
+		m_mainMenu.setToolTipText("Press to return to the Main Menu");
+		m_mainMenu.addActionListener(new ActionListener()
 		{
-
 			@Override
 			public void actionPerformed(ActionEvent arg0)
 			{
-				// Changes help to only be the general help and displays the
-				// main panel
-				helpMenu.setText("Help");
-				variantHelp.setVisible(false);
-				gamePlayHelp.setVisible(false);
-				completedHelp.setVisible(false);
-				if (gameOptions != null)
-					gameOptions.setVisible(false);
-				if (otherPanel != null)
-					remove(otherPanel);
+				if (m_gameOptionsMenu != null)
+					m_gameOptionsMenu.setVisible(false);
+				if (m_otherPanel != null)
+					remove(m_otherPanel);
 				ChessTimer.stopTimers();
-				add(mainPanel);
-				pack();
+				revertToMainPanel();
 			}
-
 		});
-		fileMenu.add(mainMenu);
+		m_mainMenu.setVisible(false);
+		m_fileMenu.add(m_mainMenu);
 
-		// Adds menu item to quit the program
+		JMenuItem preferences = new JMenuItem("Preferences", KeyEvent.VK_P);
+		preferences.setToolTipText("Press me to change your preferences");
+		preferences.addActionListener(new ActionListener()
+		{
+			@Override
+			public void actionPerformed(ActionEvent arg0)
+			{
+				final JFrame popupFrame = new JFrame("Square Options");
+				popupFrame.setSize(370, 120);
+				popupFrame.setLocationRelativeTo(Driver.this);
+				popupFrame.setLayout(new GridBagLayout());
+				popupFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+				GridBagConstraints constraints = new GridBagConstraints();
+
+				final JPanel holder = new JPanel();
+				holder.setBorder(BorderFactory.createTitledBorder("Default Completed Game Save Location"));
+				final JLabel currentSaveLocationLabel = new JLabel("Current Save Location");
+				final JTextField currentSaveLocationField = new JTextField(FileUtility.getDefaultCompletedLocation());
+				currentSaveLocationField.setEditable(false);
+				final JButton changeLocationButton = new JButton("Choose New Save Location");
+				final JButton resetButton = new JButton("Reset to Default Location");
+				final JButton cancelButton = new JButton("Done");
+				GUIUtility.setupCancelButton(cancelButton, popupFrame);
+
+				holder.add(currentSaveLocationLabel);
+				holder.add(currentSaveLocationField);
+
+				final String defaultSaveLocation = FileUtility.getDefaultCompletedLocation();
+
+				try
+				{
+					final File preferencesFile = FileUtility.getPreferencesFile();
+					if (!preferencesFile.exists())
+					{
+						try
+						{
+							preferencesFile.createNewFile();
+							BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(preferencesFile, true));
+							bufferedWriter.write("DefaultPreferencesSet = true");
+							bufferedWriter.newLine();
+							bufferedWriter.write("DefaultSaveLocation = " + defaultSaveLocation);
+							bufferedWriter.close();
+						}
+						catch (IOException e)
+						{
+							e.printStackTrace();
+						}
+					}
+					FileInputStream fileInputStream = null;
+					fileInputStream = new FileInputStream(preferencesFile);
+					DataInputStream dataInputStream = new DataInputStream(fileInputStream);
+					BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(dataInputStream));
+					String line;
+					line = bufferedReader.readLine();
+					line = bufferedReader.readLine();
+					fileInputStream.close();
+					dataInputStream.close();
+					bufferedReader.close();
+					currentSaveLocationField.setText(line.substring(22));
+
+					resetButton.addActionListener(new ActionListener()
+					{
+						@Override
+						public void actionPerformed(ActionEvent event)
+						{
+							try
+							{
+								PrintWriter printWriter = new PrintWriter(preferencesFile);
+								printWriter.print("");
+								printWriter.close();
+								BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(preferencesFile, true));
+								bufferedWriter.write("DefaultPreferencesSet = true");
+								bufferedWriter.newLine();
+								bufferedWriter.write("DefaultSaveLocation = " + defaultSaveLocation);
+								bufferedWriter.close();
+								currentSaveLocationField.setText(defaultSaveLocation);
+							}
+							catch (Exception e)
+							{
+								e.printStackTrace();
+							}
+						}
+					});
+
+					changeLocationButton.addActionListener(new ActionListener()
+					{
+						@Override
+						public void actionPerformed(ActionEvent event)
+						{
+							FileWriter fileWriter = null;
+							try
+							{
+								fileWriter = new FileWriter(preferencesFile, true);
+							}
+							catch (Exception e1)
+							{
+								e1.printStackTrace();
+							}
+							if (!preferencesFile.exists())
+							{
+								try
+								{
+									preferencesFile.createNewFile();
+									BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+									bufferedWriter.write("DefaultPreferencesSet = false");
+									bufferedWriter.newLine();
+									bufferedWriter.write("DefaultSaveLocation = " + defaultSaveLocation);
+									bufferedWriter.close();
+								}
+								catch (Exception ae)
+								{
+									ae.printStackTrace();
+								}
+							}
+							try
+							{
+								PrintWriter printWriter = new PrintWriter(preferencesFile);
+								JFileChooser fileChooser = new JFileChooser();
+								fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+								int returnVal = fileChooser.showOpenDialog(Driver.getInstance());
+								BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+								bufferedWriter.write("DefaultPreferencesSet = true");
+								bufferedWriter.newLine();
+								if (returnVal == JFileChooser.APPROVE_OPTION)
+								{
+									printWriter.print("");
+									printWriter.close();
+									bufferedWriter.write("DefaultSaveLocation = " + fileChooser.getSelectedFile().getAbsolutePath());
+									bufferedWriter.close();
+									currentSaveLocationField.setText(fileChooser.getSelectedFile().getAbsolutePath());
+								}
+								else
+								{
+									printWriter.close();
+									bufferedWriter.close();
+									return;
+								}
+							}
+							catch (Exception e)
+							{
+								e.printStackTrace();
+							}
+							try
+							{
+								fileWriter.close();
+							}
+							catch (Exception e)
+							{
+								e.printStackTrace();
+							}
+						}
+					});
+				}
+				catch (Exception e)
+				{
+					JOptionPane.showMessageDialog(Driver.getInstance(), "That is not a valid location to save your completed games.",
+							"Invalid Location", JOptionPane.PLAIN_MESSAGE);
+					e.printStackTrace();
+				}
+
+				constraints.gridx = 0;
+				constraints.gridy = 0;
+				constraints.gridwidth = 2;
+				constraints.insets = new Insets(5, 5, 5, 5);
+				popupFrame.add(holder, constraints);
+				constraints.gridx = 0;
+				constraints.gridy = 1;
+				constraints.weightx = 1;
+				constraints.gridwidth = 1;
+				constraints.anchor = GridBagConstraints.EAST;
+				popupFrame.add(changeLocationButton, constraints);
+				constraints.gridx = 1;
+				constraints.gridy = 1;
+				constraints.anchor = GridBagConstraints.WEST;
+				popupFrame.add(resetButton, constraints);
+				constraints.gridx = 0;
+				constraints.gridy = 2;
+				constraints.gridwidth = 2;
+				constraints.anchor = GridBagConstraints.CENTER;
+				popupFrame.add(cancelButton, constraints);
+
+				popupFrame.pack();
+				popupFrame.setVisible(true);
+			}
+		});
+		m_fileMenu.add(preferences);
+
 		JMenuItem exitMenuItem = new JMenuItem("Quit", KeyEvent.VK_Q);
 		exitMenuItem.setToolTipText("Press to close the program");
 		exitMenuItem.addActionListener(new ActionListener()
 		{
-
 			@Override
-			public void actionPerformed(ActionEvent e)
+			public void actionPerformed(ActionEvent event)
 			{
-				int answer = JOptionPane.showConfirmDialog(null,
-						"Are you sure you want to Quit?", "Quit?",
-						JOptionPane.YES_NO_OPTION);
+				int answer = JOptionPane.showConfirmDialog(Driver.getInstance(), "Are you sure you want to Quit?", "Quit?",
+						JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
 				if (answer == 0)
 					System.exit(0);
 			}
 		});
-		fileMenu.add(exitMenuItem);
+		m_fileMenu.add(exitMenuItem);
 
-		menuBar.add(fileMenu);
-		menuBar.add(helpMenu);
+		m_menuBar.add(m_fileMenu);
+		m_menuBar.add(m_helpMenu);
 
-		// Set the menuBar for the window.
-		setJMenuBar(menuBar);
+		setJMenuBar(m_menuBar);
 
-		// Setting up the layout for the main panel
-		mainPanel.setLayout(new GridBagLayout());
+		m_mainPanel.setLayout(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.weightx = 0.0;
 		c.gridwidth = 3;
 		c.gridx = 0;
 		c.gridy = 0;
-		mainPanel.add(pictureHolder, c); // adding the front page image
+		m_mainPanel.add(iconHolder, c);
 
-		// New Game
+		// new game
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
 		c.gridy = 1;
 		c.gridwidth = 2;
-		mainPanel.add(newGame, c); // adding the New Game button
+		m_mainPanel.add(m_newGameButton, c);
 
-		// Create new game type
+		// create new variant
 		c.gridx = 2;
 		c.gridy = 1;
 		c.gridwidth = 1;
-		mainPanel.add(createType, c); // Adding variant creation button
+		m_mainPanel.add(m_createVariantButton, c);
 
-		// Continue
+		// continue
 		c.fill = GridBagConstraints.HORIZONTAL;
 		c.gridx = 0;
 		c.gridy = 2;
 		c.gridwidth = 2;
-		mainPanel.add(continueGame, c); // Adds the load game button
+		m_mainPanel.add(m_continueGameButton, c);
 
-		// View Completed
-		c.gridx = 2; // aligned with button 2
-		c.gridy = 2; // third row
+		// view completed game
+		c.gridx = 2;
+		c.gridy = 2;
 		c.gridwidth = 1;
-		mainPanel.add(viewGame, c); // Adds the completed games button
+		m_mainPanel.add(m_viewCompletedGameButton, c);
 
-		add(mainPanel);
+		add(m_mainPanel);
 		setVisible(true);
 	}
 
-	/**
-	 * Sets up a new game and clears out any old game being played
-	 */
-	public void newGame()
+	public void setUpNewGame()
 	{
-
-		variantHelp.setVisible(false); // Makes sure that the appropriate help
-										// menus are displayed
-		helpMenu.setText("Game Help");
-		gamePlayHelp.setVisible(true);
-
-		if (PlayGame.menu != null)
-			PlayGame.menu.setVisible(false);
-		// Resets the panels being displayed to only contain the new game
-		if (otherPanel != null)
-			remove(otherPanel);
-		if (mainPanel != null)
-			remove(mainPanel);
-		otherPanel = new NewGameMenu();
-		add(otherPanel);
+		if (PlayGame.m_optionsMenu != null)
+			PlayGame.m_optionsMenu.setVisible(false);
 		ChessTimer.stopTimers();
-		gamePlayHelp.setVisible(true);
-		pack();
+		setPanel(new NewGameMenu());
 	}
 
-	/**
-	 * Display a given JPanel in this window. Remove otherPanel, change what
-	 * otherPanel is, replace it, repaint.
-	 * 
-	 * @param panel The panel to be set.
-	 */
 	public void setPanel(JPanel panel)
 	{
-		remove(otherPanel);
-		otherPanel = panel;
-		add(otherPanel);
+		remove(m_mainPanel);
+		if (m_otherPanel != null)
+			remove(m_otherPanel);
+		m_mainMenu.setVisible(true);
+		add(panel);
+		if (panel.toString().contains("PlayGame") || panel.toString().contains("PlayNetGame"))
+			activateWindowListener();
+		m_otherPanel = panel;
 		pack();
 	}
 
-	/**
-	 * Revert the display to the main screen.
-	 */
-	public void revertPanel()
+	public void revertToMainPanel()
 	{
-		remove(otherPanel);
-		add(mainPanel);
+		remove(m_otherPanel);
+		m_mainMenu.setVisible(false);
+		add(m_mainPanel);
+		deactivateWindowListener();
 		pack();
 	}
 
-	/**
-	 * Get the singleton instance of the Driver.
-	 * 
-	 * @return The singleton instance of the Driver
-	 */
 	public static Driver getInstance()
 	{
-		return d;
+		return m_driver;
 	}
 
-	/**
-	 * Method to add options menu for in the middle of the game
-	 * 
-	 * @param menu the menu being added
-	 */
 	public void setMenu(JMenu menu)
 	{
-		gameOptions = menu;
-		menuBar.add(gameOptions);
-		gameOptions.setVisible(true);
-		gameOptions.setMnemonic('O');
-		gameOptions.setText("Options");
-		gameOptions.setToolTipText("Use me to access game options");
-		gameOptions.setForeground(Color.white);
-
+		m_gameOptionsMenu = menu;
+		m_menuBar.add(m_gameOptionsMenu);
+		m_gameOptionsMenu.setVisible(true);
+		m_gameOptionsMenu.setMnemonic('O');
+		m_gameOptionsMenu.setText("Options");
+		m_gameOptionsMenu.setToolTipText("Use me to access game options");
 	}
 
+	public void activateWindowListener()
+	{
+		setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+		removeWindowListener(m_windowListener);
+		m_windowListener = new WindowListener()
+		{
+			@Override
+			public void windowOpened(WindowEvent e)
+			{
+			}
+
+			@Override
+			public void windowIconified(WindowEvent e)
+			{
+			}
+
+			@Override
+			public void windowDeiconified(WindowEvent e)
+			{
+			}
+
+			@Override
+			public void windowDeactivated(WindowEvent e)
+			{
+			}
+
+			@Override
+			public void windowClosing(WindowEvent e)
+			{
+				Object[] options = new String[] { "Save Game", "Don't Save", "Cancel" };
+				switch (JOptionPane.showOptionDialog(Driver.getInstance(), "Would you like to save your game before you quit?",
+						"Quit?", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[0]))
+				{
+				case JOptionPane.YES_OPTION:
+					((PlayGame) m_otherPanel).saveGame();
+					break;
+				case JOptionPane.NO_OPTION:
+					System.exit(0);
+					break;
+				case JOptionPane.CANCEL_OPTION:
+					break;
+				}
+			}
+
+			@Override
+			public void windowClosed(WindowEvent e)
+			{
+			}
+
+			@Override
+			public void windowActivated(WindowEvent e)
+			{
+			}
+		};
+		addWindowListener(m_windowListener);
+	}
+
+	public void deactivateWindowListener()
+	{
+		removeWindowListener(m_windowListener);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+	}
+
+	private static final long serialVersionUID = -3533604157531154757L;
+	private static final Driver m_driver = new Driver();
+
+	public static JMenu m_gameOptionsMenu;
+
+	public JMenu m_helpMenu;
+	public JMenu m_fileMenu;
+	public JMenuItem m_mainMenu;
+	public WindowListener m_windowListener;
+
+	private JButton m_newGameButton;
+	private JButton m_continueGameButton;
+	private JButton m_viewCompletedGameButton;
+	private JButton m_createVariantButton;
+	private JPanel m_mainPanel;
+	private JMenuBar m_menuBar;
+	private JPanel m_otherPanel;
 }

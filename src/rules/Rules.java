@@ -1,6 +1,7 @@
 package rules;
 
 import java.io.Serializable;
+import java.util.EnumSet;
 import java.util.List;
 
 import logic.Board;
@@ -9,385 +10,178 @@ import logic.Move;
 import logic.Piece;
 import logic.Square;
 
-/**
- * Rules.java
- * 
- * Class to model the Rules of a variation of chess.
- * 
- * @author Drew Hannay & Alisa Maas
- * 
- * CSCI 335, Wheaton College, Spring 2011 Phase 2 April 7, 2011
- */
 public class Rules implements Serializable
 {
-
-	/**
-	 * Generated Serial Version ID
-	 */
-	private static final long serialVersionUID = -7895448383101471186L;
-
-	// Variables Declaration
-	/**
-	 * Whether it is classic chess or not.
-	 */
-	private boolean isClassic;
-	/**
-	 * An object to determine whose turn it is.
-	 */
-	private NextTurn nextTurn;
-	/**
-	 * An object to determine if the game is over.
-	 */
-	private EndOfGame endOfGame;
-	/**
-	 * An object to crop the legal dests of a piece
-	 */
-	private CropLegalDests cropLegalDests;
-	/**
-	 * An object to determine which piece is the objective.
-	 */
-	private ObjectivePiece objectivePiece;
-	/**
-	 * An object to determine what happens after a move.
-	 */
-	private AfterMove afterMove;
-	/**
-	 * An object to get the board.
-	 */
-	private GetBoard getBoard;
-	/**
-	 * An object to promote a piece.
-	 */
-	private Promote promote;
-	/**
-	 * An object to get the promotion squares of a piece.
-	 */
-	private GetPromotionSquares getPromotionSquares;
-	/**
-	 * An object to adjust the team's dests.
-	 */
-	private AdjustTeamDests adjustTeamDests;
-
-	// End Variables Declaration
-
-	/**
-	 * @param isClassic Whether the game is classic chess.
-	 * @param isBlack is this for the black or white player?
-	 */
-	public Rules(boolean isClassic, boolean isBlack)
+	public Rules(boolean isBlack)
 	{
 		// Initialize everything to classic to ensure nothing can be null.
-		nextTurn = new NextTurn("classic", 1, 1, 0);
-		endOfGame = new EndOfGame("classic", 3, "Queen", isBlack);
-		cropLegalDests = new CropLegalDests();
-		cropLegalDests.addMethod("classic");
-		objectivePiece = new ObjectivePiece("classic", ""); // TODO error
-															// handling, in GUI
-		afterMove = new AfterMove();
-		afterMove.addMethod("classic");
-		getBoard = new GetBoard("classic");
-		promote = new Promote("classic");
-		getPromotionSquares = new GetPromotionSquares("classic");
-		adjustTeamDests = new AdjustTeamDests("classic");
+		m_nextTurn = NextTurn.CLASSIC.init(1, 1, 0);
 
+		m_endOfGame = EndOfGame.CLASSIC.init(3, "Queen", isBlack);
+
+		m_cropLegalDests = EnumSet.of(CropLegalDestinations.CLASSIC);
+		m_objectivePiece = ObjectivePiece.CLASSIC;
+		m_afterMoves = EnumSet.of(AfterMove.CLASSIC);
+		m_getBoard = GetBoard.CLASSIC;
+		m_promote = Promote.CLASSIC;
+		m_getPromotionSquares = GetPromotionSquares.CLASSIC;
+		m_adjustTeamLegalDestinations = AdjustTeamLegalDestinations.CLASSIC;
 	}
 
-	/**
-	 * Setter for adjustTeamDests
-	 * 
-	 * @param dests the new adjustTeamDests.
-	 */
-	public void addAdjustTeamDests(AdjustTeamDests dests)
+	public void addAdjustTeamDestinations(AdjustTeamLegalDestinations adjustTeamDestinations)
 	{
-		adjustTeamDests = dests;
+		m_adjustTeamLegalDestinations = adjustTeamDestinations;
 	}
 
-	/**
-	 * Add a method to AfterMove.
-	 * 
-	 * @param string The name of the method to add.
-	 */
-	public void addAfterMove(String string)
+	public void addAfterMove(AfterMove afterMove)
 	{
-		if (afterMove == null)
-		{
-			afterMove = new AfterMove();
-		}
-		afterMove.addMethod(string);
-
+		m_afterMoves.add(afterMove);
 	}
 
-	/**
-	 * Add a method to cropLegalDests
-	 * 
-	 * @param string The method to add.
-	 */
-	public void addCropLegalDests(String string)
+	public void addCropLegalDests(CropLegalDestinations cropLegalDests)
 	{
-		if (cropLegalDests == null)
-		{
-			cropLegalDests = new CropLegalDests();
-		}
-		cropLegalDests.addMethod(string);
-
+		m_cropLegalDests.add(cropLegalDests);
 	}
 
-	/**
-	 * Setter for endOfGame
-	 * 
-	 * @param eog the new endOfGame.
-	 */
-	public void addEndOfGame(EndOfGame eog)
+	public void addEndOfGame(EndOfGame endOfGame)
 	{
-		endOfGame = eog;
+		m_endOfGame = endOfGame;
 	}
 
-	/**
-	 * Getter for name of the game.
-	 * 
-	 * @return name of the game.
-	 */
-	public String theEndIsNigh()
+	public EndOfGame getEndOfGame()
 	{
-		return endOfGame.getName();
+		return m_endOfGame;
 	}
 
-	/**
-	 * Setter for getPromotionSquares
-	 * 
-	 * @param string The name of the method to implement
-	 */
-	public void addGetPromotionSquares(String string)
+	public void addGetPromotionSquares(GetPromotionSquares getPromotionSquares)
 	{
-		getPromotionSquares = new GetPromotionSquares(string);
-
+		m_getPromotionSquares = getPromotionSquares;
 	}
 
-	/**
-	 * Setter for promote
-	 * 
-	 * @param string The new promote.
-	 */
-	public void addPromote(String string)
+	public void addPromote(Promote promote)
 	{
-		promote = new Promote(string);
-
+		m_promote = promote;
 	}
 
-	/**
-	 * Adjust the dests of the entire team
-	 * 
-	 * @param team The team to adjust.
-	 */
-	public void adjustTeamDests(List<Piece> team)
+	public void adjustTeamLegalDestinations(List<Piece> team)
 	{
-		adjustTeamDests.execute(team);
+		m_adjustTeamLegalDestinations.adjustDestinations(team);
 	}
 
-	/**
-	 * Do anything that needs to happen after a move.
-	 * 
-	 * @param m The move performed.
-	 */
-	public void afterMove(Move m)
+	public void afterMove(Move move)
 	{
-		afterMove.execute(m);
+		for (AfterMove rule : m_afterMoves)
+			rule.performAfterMoveAction(move);
 	}
 
-	/**
-	 * Crop the legal dests of a piece.
-	 * 
-	 * @param movingObjectivePiece The moving objective piece
-	 * @param toAdjust The piece to adjust
-	 * @param enemyTeam The enemy team.
-	 */
-	public void cropLegalDests(Piece movingObjectivePiece, Piece toAdjust,
-			List<Piece> enemyTeam)
+	public void cropLegalDests(Piece movingObjectivePiece, Piece pieceToAdjust, List<Piece> enemyTeam)
 	{
-		cropLegalDests.execute(movingObjectivePiece, toAdjust, enemyTeam);
+		for (CropLegalDestinations cropLegalDests : m_cropLegalDests)
+			cropLegalDests.cropLegalDestinations(movingObjectivePiece, pieceToAdjust, enemyTeam);
 	}
 
-	/**
-	 * Determine if the game is over.
-	 * 
-	 * @param objectivePiece Which piece, if any, is the objective?
-	 */
-	public void endOfGame(Piece objectivePiece)
+	public void checkEndOfGame(Piece objectivePiece)
 	{
-		endOfGame.execute(objectivePiece);
+		m_endOfGame.checkEndOfGame(objectivePiece);
 	}
 
-	/**
-	 * Get the board.
-	 * 
-	 * @param startBoard Which board the piece is on
-	 * @return The board the piece should look at.
-	 */
 	public Board getBoard(Board startBoard)
 	{
-		return getBoard.execute(startBoard);
-
+		return m_getBoard.getBoard(startBoard);
 	}
 
-	/**
-	 * @param toPromote The piece to promote
-	 * @return Where this piece can promote.
-	 */
 	public List<Square> getPromotionSquares(Piece toPromote)
 	{
-		return getPromotionSquares.execute(toPromote);
+		return m_getPromotionSquares.getPromotionSquares(toPromote);
 	}
 
-	/**
-	 * @return Getter for isClassic.
-	 */
-	public boolean isClassic()
-	{
-		return isClassic;
-	}
-
-	/**
-	 * Determine whose turn it is.
-	 * 
-	 * @return Is it black's turn?
-	 */
 	public boolean nextTurn()
 	{
-		return nextTurn.execute();
-
+		return m_nextTurn.getNextTurn();
 	}
 
-	/**
-	 * Find the objective piece
-	 * 
-	 * @param isBlack Is the current piece black?
-	 * @return The corresponding objective piece.
-	 */
-	public Piece objectivePiece(boolean isBlack)
-	{
-		return objectivePiece.execute(isBlack);
-
-	}
-
-	/**
-	 * Undo nextTurn()
-	 * 
-	 * @return Whose turn it is.
-	 */
 	public boolean prevTurn()
 	{
-		return nextTurn.undo();
+		return m_nextTurn.undo();
 	}
 
-	/**
-	 * Promote a piece
-	 * 
-	 * @param toPromote The piece to promote
-	 * @param verified Whether it's been verified that this piece can promote
-	 * @param promo What it promotes from.
-	 * @return The promoted piece.
-	 */
-	public Piece promote(Piece toPromote, boolean verified, String promo)
+	public Piece objectivePiece(boolean isBlack)
 	{
-		return promote.execute(toPromote, verified, promo);
+		return m_objectivePiece.getObjectivePiece(isBlack);
 	}
 
-	/**
-	 * Sets the game object in any instance variables requiring this
-	 * information.
-	 * 
-	 * @param g The game to set
-	 */
-	public void setGame(Game g)
+	public Piece promote(Piece pieceToPromote, boolean pieceCanBePromoted, String pieceTypeToPromoteFrom)
 	{
-		endOfGame.setGame(g);
-		objectivePiece.setGame(g);
-		afterMove.setGame(g);
-		getBoard.setGame(g);
-		getPromotionSquares.setGame(g);
-		promote.setGame(g);
+		return m_promote.promotePiece(pieceToPromote, pieceCanBePromoted, pieceTypeToPromoteFrom);
 	}
 
-	/**
-	 * Setter for getBoard.
-	 * 
-	 * @param getBoard Set getBoard to this
-	 */
+	public void setGame(Game game)
+	{
+		m_endOfGame.setGame(game);
+		m_objectivePiece.setGame(game);
+		m_getBoard.setGame(game);
+		m_getPromotionSquares.setGame(game);
+		m_promote.setGame(game);
+
+		for (AfterMove rule : m_afterMoves)
+			rule.setGame(game);
+	}
+
 	public void setGetBoard(GetBoard getBoard)
 	{
-		this.getBoard = getBoard;
-
+		m_getBoard = getBoard;
 	}
 
-	/**
-	 * Setter for nextTurn
-	 * 
-	 * @param n The new nextTurn object.
-	 */
-	public void setNextTurn(NextTurn n)
+	public void setNextTurn(NextTurn nextTurn)
 	{
-		nextTurn = n;
+		m_nextTurn = nextTurn;
 	}
 
-	/**
-	 * Setter for objectivePiece
-	 * 
-	 * @param objectivePiece The new objectivePiece.
-	 */
+	public NextTurn getNextTurn()
+	{
+		return m_nextTurn;
+	}
+
 	public void setObjectivePiece(ObjectivePiece objectivePiece)
 	{
-		this.objectivePiece = objectivePiece;
-
+		m_objectivePiece = objectivePiece;
 	}
 
-	/**
-	 * Undo the effects of afterMove()
-	 * 
-	 * @param m The move to undo.
-	 */
-	public void undoAfterMove(Move m)
+	public void undoAfterMove(Move move)
 	{
-		afterMove.undo(m);
+		for (AfterMove rule : m_afterMoves)
+			rule.undo(move);
 	}
 
-	/**
-	 * undo endOfGame().
-	 */
 	public void undoEndOfGame()
 	{
-		endOfGame.undo();
+		m_endOfGame.undo();
 	}
 
-	/**
-	 * Undo the promotion.
-	 * 
-	 * @param p The piece to unpromote.
-	 * @return The unpromoted piece.
-	 */
-	public Piece undoPromote(Piece p)
+	public Piece undoPromote(Piece pieceToUnpromote)
 	{
-		return promote.undo(p);
+		return m_promote.undo(pieceToUnpromote);
 	}
 
-	/**
-	 * Get the name of the objective piece
-	 * 
-	 * @return the name of the objective piece
-	 */
 	public String getObjectiveName()
 	{
-		return objectivePiece.getObjectiveName();
+		return m_objectivePiece.getObjectivePieceName();
 	}
 
-	/**
-	 * May these rules be played across a networked connection?
-	 * 
-	 * @return can this game be played across a network?
-	 */
-	public boolean networkable()
+	public boolean rulesAreNetworkable()
 	{
-		List<String> afterMoves = afterMove.getMethods();
-		return !(afterMoves.contains("placeCaptured") || afterMoves
-				.contains("placeCapturedSwitch"));
+		return !(m_afterMoves.contains(AfterMove.CAPTURER_PLACES_CAPTURED) || m_afterMoves.contains(AfterMove.CAPTURER_STEALS_CAPTURED));
 	}
+
+	private static final long serialVersionUID = -7895448383101471186L;
+
+	private NextTurn m_nextTurn;
+	private EndOfGame m_endOfGame;
+	private EnumSet<CropLegalDestinations> m_cropLegalDests;
+	private EnumSet<AfterMove> m_afterMoves;
+	private ObjectivePiece m_objectivePiece;
+	private GetBoard m_getBoard;
+	private Promote m_promote;
+	private GetPromotionSquares m_getPromotionSquares;
+	private AdjustTeamLegalDestinations m_adjustTeamLegalDestinations;
 }
